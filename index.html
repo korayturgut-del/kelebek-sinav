@@ -1384,6 +1384,7 @@ input, textarea, select, [contenteditable] {
     margin-bottom: 16px;
     padding-bottom: 16px;
     border-bottom: 2px solid rgba(255,255,255,0.08);
+    cursor: pointer;
   }
   .mobile-perf-avatar {
     width: 48px;
@@ -1408,6 +1409,104 @@ input, textarea, select, [contenteditable] {
     font-size: 0.8rem;
     color: var(--text2);
   }
+  .mobile-perf-total-badge {
+    background: rgba(99,102,241,0.2);
+    color: var(--accent2);
+    padding: 6px 14px;
+    border-radius: 12px;
+    font-size: 1.1rem;
+    font-weight: 800;
+  }
+
+  /* ACCORDION DAL SİSTEMİ */
+  .maarif-branch {
+    margin-bottom: 8px;
+    border-radius: 14px;
+    overflow: hidden;
+    border: 1px solid rgba(255,255,255,0.06);
+  }
+  .maarif-branch-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 14px 16px;
+    cursor: pointer;
+    transition: background 0.2s;
+  }
+  .maarif-branch-header:active { opacity: 0.8; }
+  .maarif-branch-header .branch-icon { font-size: 1.3rem; margin-right: 10px; }
+  .maarif-branch-header .branch-title { flex: 1; font-weight: 700; font-size: 0.9rem; color: #fff; }
+  .maarif-branch-header .branch-weight { font-size: 0.7rem; color: var(--text2); margin-right: 8px; }
+  .maarif-branch-header .branch-score { font-weight: 800; font-size: 1rem; }
+  .maarif-branch-header .branch-arrow { font-size: 1.2rem; color: var(--text3); transition: transform 0.3s; }
+  .maarif-branch.open .branch-arrow { transform: rotate(90deg); }
+
+  .maarif-branch-body {
+    max-height: 0;
+    overflow: hidden;
+    transition: max-height 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+    background: rgba(0,0,0,0.2);
+  }
+  .maarif-branch.open .maarif-branch-body {
+    max-height: 600px;
+  }
+
+  .maarif-sub-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 12px 16px;
+    border-bottom: 1px solid rgba(255,255,255,0.04);
+  }
+  .maarif-sub-item:last-child { border-bottom: none; }
+  .maarif-sub-label { font-size: 0.85rem; color: var(--text2); flex: 1; }
+  .maarif-sub-btns { display: flex; gap: 6px; align-items: center; }
+  .maarif-btn {
+    width: 36px; height: 36px;
+    border-radius: 10px;
+    border: 1px solid rgba(255,255,255,0.1);
+    background: #0d1117;
+    color: #fff;
+    font-size: 1.1rem;
+    font-weight: 700;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: all 0.15s;
+  }
+  .maarif-btn:active { transform: scale(0.9); }
+  .maarif-btn.minus { color: #ef4444; }
+  .maarif-btn.plus { color: #10b981; }
+  .maarif-score-val {
+    min-width: 32px;
+    text-align: center;
+    font-weight: 800;
+    font-size: 1rem;
+    color: #fff;
+  }
+  .maarif-note-btn {
+    width: 32px; height: 32px;
+    border-radius: 8px;
+    border: 1px solid rgba(255,255,255,0.08);
+    background: transparent;
+    color: var(--text3);
+    font-size: 0.85rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    margin-left: 6px;
+  }
+  .maarif-note-btn.has-note { color: var(--amber); border-color: var(--amber); }
+
+  /* Branch renkleri */
+  .branch-surec .maarif-branch-header { background: rgba(14,165,233,0.1); }
+  .branch-surec .branch-score { color: var(--blue); }
+  .branch-performans .maarif-branch-header { background: rgba(168,85,247,0.1); }
+  .branch-performans .branch-score { color: var(--purple); }
+  .branch-sosyal .maarif-branch-header { background: rgba(16,185,129,0.1); }
+  .branch-sosyal .branch-score { color: var(--green); }
   .mobile-perf-rows {
     display: flex;
     flex-direction: column;
@@ -9929,48 +10028,146 @@ function mobileRenderPerformance(className){
   const students = db.classes[className] || [];
   let html = '';
 
-  students.forEach(student => {
-    const scores = perfCalculateScores(student);
+  // Maarif Modeli dal yapısı
+  const maarifStructure = {
+    surec: {
+      icon: '📘', title: 'Süreç Odaklı Ölçme', weight: 40,
+      items: [
+        {key:'materyal', label:'Materyal/Kitap Uyumu'},
+        {key:'on_arastirma', label:'Ön Araştırma Sunumu'},
+        {key:'kitap_etkinlik', label:'Kitap Etkinlikleri'},
+        {key:'bilimsel_sorgulama', label:'Bilimsel Sorgulama'}
+      ]
+    },
+    performans: {
+      icon: '🔬', title: 'Performans Görevi', weight: 40,
+      items: [
+        {key:'tasarim', label:'Tasarım ve Uygulama'},
+        {key:'veri_analiz', label:'Veri Analizi'},
+        {key:'raporlama', label:'Raporlama'}
+      ]
+    },
+    sosyal: {
+      icon: '🤝', title: 'Sosyal-Duyuşsal', weight: 20,
+      items: [
+        {key:'oz_elestiri', label:'Dürüstlük ve Öz-Eleştiri'},
+        {key:'akran_deg', label:'Akran Değerlendirme'},
+        {key:'lab_etik', label:'Laboratuvar Etiği'}
+      ]
+    }
+  };
+
+  students.forEach((student, sIdx) => {
     const studentName = student.ad || student.name || '';
     const studentNo = student.no || student.schoolNumber || '';
     
-    html += `
-      <div class="mobile-perf-card">
-        <div class="mobile-perf-header">
-          <div class="mobile-perf-avatar">👤</div>
-          <div class="mobile-perf-name">
-            <div class="mobile-perf-name-text">${studentName}</div>
-            <div class="mobile-perf-name-no">No: ${studentNo}</div>
-          </div>
-        </div>
-        <div class="mobile-perf-rows">
-          <div class="mobile-perf-row">
-            <span class="mobile-perf-label">Hazırlık</span>
-            <span class="mobile-perf-value">${scores.preparation > 0 ? '+' : ''}${scores.preparation}</span>
-          </div>
-          <div class="mobile-perf-row">
-            <span class="mobile-perf-label">Katılım</span>
-            <span class="mobile-perf-value">${scores.participation > 0 ? '+' : ''}${scores.participation}</span>
-          </div>
-          <div class="mobile-perf-row">
-            <span class="mobile-perf-label">Görevler</span>
-            <span class="mobile-perf-value">${scores.tasks > 0 ? '+' : ''}${scores.tasks}</span>
-          </div>
-          <div class="mobile-perf-row">
-            <span class="mobile-perf-label">Davranış</span>
-            <span class="mobile-perf-value">${scores.behavior > 0 ? '+' : ''}${scores.behavior}</span>
-          </div>
-          <div class="mobile-perf-row">
-            <span class="mobile-perf-label">Devam</span>
-            <span class="mobile-perf-value">${scores.attendance > 0 ? '+' : ''}${scores.attendance}</span>
-          </div>
-          <div class="mobile-perf-row">
-            <span class="mobile-perf-label">TOPLAM PUAN</span>
-            <span class="mobile-perf-value mobile-perf-total">${scores.total > 0 ? '+' : ''}${scores.total}</span>
-          </div>
-        </div>
-      </div>
-    `;
+    // Maarif verisi yoksa oluştur
+    if(!student.maarif) student.maarif = {};
+    
+    // Toplam hesapla
+    let totalWeighted = 0;
+    Object.keys(maarifStructure).forEach(branchKey => {
+      const branch = maarifStructure[branchKey];
+      let branchSum = 0;
+      branch.items.forEach(item => {
+        branchSum += (student.maarif[item.key] || 0);
+      });
+      totalWeighted += branchSum;
+    });
+    
+    html += '<div class="mobile-perf-card">';
+    html += '<div class="mobile-perf-header">';
+    html += '<div class="mobile-perf-avatar">👤</div>';
+    html += '<div class="mobile-perf-name">';
+    html += '<div class="mobile-perf-name-text">' + studentName + '</div>';
+    html += '<div class="mobile-perf-name-no">No: ' + studentNo + '</div>';
+    html += '</div>';
+    html += '<div class="mobile-perf-total-badge">' + totalWeighted + '</div>';
+    html += '</div>';
+
+    // 3 Ana Dal (Accordion)
+    Object.keys(maarifStructure).forEach(branchKey => {
+      const branch = maarifStructure[branchKey];
+      let branchSum = 0;
+      branch.items.forEach(item => {
+        branchSum += (student.maarif[item.key] || 0);
+      });
+
+      html += '<div class="maarif-branch branch-' + branchKey + '" id="branch-' + sIdx + '-' + branchKey + '">';
+      html += '<div class="maarif-branch-header" onclick="maarifToggle(' + sIdx + ',\'' + branchKey + '\')">';
+      html += '<span class="branch-icon">' + branch.icon + '</span>';
+      html += '<span class="branch-title">' + branch.title + '</span>';
+      html += '<span class="branch-weight">%' + branch.weight + '</span>';
+      html += '<span class="branch-score">' + branchSum + '</span>';
+      html += '<span class="branch-arrow">›</span>';
+      html += '</div>';
+      html += '<div class="maarif-branch-body">';
+
+      branch.items.forEach(item => {
+        const val = student.maarif[item.key] || 0;
+        const noteKey = item.key + '_note';
+        const hasNote = student.maarif[noteKey] ? 'has-note' : '';
+
+        html += '<div class="maarif-sub-item">';
+        html += '<span class="maarif-sub-label">' + item.label + '</span>';
+        html += '<div class="maarif-sub-btns">';
+        html += '<div class="maarif-btn minus" onclick=\'maarifScore("' + className + '",' + sIdx + ',"' + item.key + '",-1)\'>−</div>';
+        html += '<span class="maarif-score-val" id="msv-' + sIdx + '-' + item.key + '">' + val + '</span>';
+        html += '<div class="maarif-btn plus" onclick=\'maarifScore("' + className + '",' + sIdx + ',"' + item.key + '",1)\'>+</div>';
+        html += '<div class="maarif-note-btn ' + hasNote + '" onclick=\'maarifNote("' + className + '",' + sIdx + ',"' + item.key + '")\'>📝</div>';
+        html += '</div>';
+        html += '</div>';
+      });
+
+      html += '</div></div>';
+    });
+
+    // GENEL DEĞERLENDİRME (Puanlama dışı)
+    html += '<div class="maarif-branch branch-genel" id="branch-' + sIdx + '-genel">';
+    html += '<div class="maarif-branch-header" onclick="maarifToggle(' + sIdx + ',\'genel\')" style="background:rgba(245,158,11,0.1)">';
+    html += '<span class="branch-icon">📋</span>';
+    html += '<span class="branch-title">Genel Değerlendirme</span>';
+    html += '<span class="branch-arrow" style="color:var(--amber)">›</span>';
+    html += '</div>';
+    html += '<div class="maarif-branch-body">';
+    
+    if(!student.maarif) student.maarif = {};
+    if(!student.maarif.genel_durum) student.maarif.genel_durum = '';
+    if(!student.maarif.rehberlik_notu) student.maarif.rehberlik_notu = '';
+    
+    var genelOptions = [
+      {key:'cok_iyi', label:'Çok İyi', icon:'🌟', color:'#10b981'},
+      {key:'iyi', label:'İyi', icon:'✅', color:'#22c55e'},
+      {key:'orta', label:'Orta', icon:'➖', color:'#f59e0b'},
+      {key:'gelistirilmeli', label:'Geliştirilmeli', icon:'⚠️', color:'#ef4444'},
+      {key:'yetersiz', label:'Yetersiz', icon:'❌', color:'#dc2626'},
+      {key:'rehberlik', label:'Rehberlik İlgilenmeli', icon:'🆘', color:'#a855f7'}
+    ];
+    
+    genelOptions.forEach(function(opt){
+      var isSelected = student.maarif.genel_durum === opt.key;
+      var selectedStyle = isSelected ? 'background:' + opt.color + '22;border-color:' + opt.color : '';
+      html += '<div class="maarif-sub-item" onclick=\'maarifGenelSec("' + className + '",' + sIdx + ',"' + opt.key + '")\' ';
+      html += 'style="cursor:pointer;border-radius:10px;margin:4px 16px;border:1px solid rgba(255,255,255,0.06);' + selectedStyle + '">';
+      html += '<span style="font-size:1.2rem;margin-right:10px">' + opt.icon + '</span>';
+      html += '<span class="maarif-sub-label" style="color:' + (isSelected ? '#fff' : 'var(--text2)') + ';font-weight:' + (isSelected ? '700' : '500') + '">' + opt.label + '</span>';
+      if(isSelected) html += '<span style="color:' + opt.color + ';font-size:1.2rem">●</span>';
+      html += '</div>';
+    });
+    
+    // Rehberlik notu (sadece rehberlik seçiliyse göster)
+    if(student.maarif.genel_durum === 'rehberlik'){
+      html += '<div style="padding:12px 16px">';
+      html += '<div style="font-size:0.8rem;color:var(--amber);font-weight:600;margin-bottom:8px">Rehberlik Notu:</div>';
+      html += '<div onclick=\'maarifRehberlikNot("' + className + '",' + sIdx + ')\' ';
+      html += 'style="background:#0d1117;border:1px solid rgba(168,85,247,0.3);border-radius:12px;padding:12px;color:#fff;font-size:0.85rem;min-height:40px;cursor:pointer">';
+      html += (student.maarif.rehberlik_notu || '<span style="color:var(--text3)">Not eklemek için tıklayın...</span>');
+      html += '</div></div>';
+    }
+    
+    html += '</div></div>';
+
+    html += '</div>';
   });
 
   if(students.length === 0){
@@ -9978,6 +10175,146 @@ function mobileRenderPerformance(className){
   }
 
   grid.innerHTML = html;
+}
+
+// Accordion toggle
+function maarifToggle(sIdx, branchKey){
+  const el = document.getElementById('branch-' + sIdx + '-' + branchKey);
+  if(el) el.classList.toggle('open');
+}
+
+// Puan ver (+1 / -1)
+function maarifScore(className, sIdx, itemKey, delta){
+  const student = db.classes[className][sIdx];
+  if(!student) return;
+  if(!student.maarif) student.maarif = {};
+  
+  const current = student.maarif[itemKey] || 0;
+  student.maarif[itemKey] = current + delta;
+  save();
+  
+  // UI güncelle (sayfa yenilenmeden)
+  const valEl = document.getElementById('msv-' + sIdx + '-' + itemKey);
+  if(valEl) valEl.textContent = student.maarif[itemKey];
+  
+  // Toplam badge güncelle
+  maarifUpdateTotal(className, sIdx);
+}
+
+function maarifUpdateTotal(className, sIdx){
+  const student = db.classes[className][sIdx];
+  if(!student || !student.maarif) return;
+  
+  let total = 0;
+  Object.keys(student.maarif).forEach(k => {
+    if(!k.endsWith('_note')){
+      total += (student.maarif[k] || 0);
+    }
+  });
+  
+  // Badge güncelle
+  const card = document.querySelectorAll('.mobile-perf-card')[sIdx];
+  if(card){
+    const badge = card.querySelector('.mobile-perf-total-badge');
+    if(badge) badge.textContent = total;
+  }
+  
+  // Branch skorlarını güncelle
+  const maarifStructure = {
+    surec: ['materyal','on_arastirma','kitap_etkinlik','bilimsel_sorgulama'],
+    performans: ['tasarim','veri_analiz','raporlama'],
+    sosyal: ['oz_elestiri','akran_deg','lab_etik']
+  };
+  
+  Object.keys(maarifStructure).forEach(branchKey => {
+    let branchSum = 0;
+    maarifStructure[branchKey].forEach(k => {
+      branchSum += (student.maarif[k] || 0);
+    });
+    const branchEl = document.getElementById('branch-' + sIdx + '-' + branchKey);
+    if(branchEl){
+      const scoreEl = branchEl.querySelector('.branch-score');
+      if(scoreEl) scoreEl.textContent = branchSum;
+    }
+  });
+}
+
+// Genel Değerlendirme seç
+function maarifGenelSec(className, sIdx, optKey){
+  var student = db.classes[className][sIdx];
+  if(!student) return;
+  if(!student.maarif) student.maarif = {};
+  student.maarif.genel_durum = optKey;
+  if(optKey !== 'rehberlik') student.maarif.rehberlik_notu = '';
+  save();
+  mobileRenderPerformance(className);
+  setTimeout(function(){
+    var el = document.getElementById('branch-' + sIdx + '-genel');
+    if(el) el.classList.add('open');
+  }, 50);
+}
+
+// Rehberlik notu
+function maarifRehberlikNot(className, sIdx){
+  var student = db.classes[className][sIdx];
+  if(!student) return;
+  if(!student.maarif) student.maarif = {};
+  var current = student.maarif.rehberlik_notu || '';
+  var html = '<h3 style="color:#a855f7;margin-bottom:12px;font-size:1rem">Rehberlik Notu</h3>' +
+    '<textarea id="maarif-rehberlik-input" placeholder="Durumu yazın..." maxlength="500" ' +
+    'style="width:100%;height:120px;padding:12px;border-radius:12px;background:#0d1117;border:1px solid rgba(168,85,247,0.3);color:#fff;font-size:0.9rem;resize:none">' + current + '</textarea>' +
+    '<button onclick=\'maarifRehberlikSave("' + className + '",' + sIdx + ')\' ' +
+    'style="width:100%;padding:12px;border-radius:12px;background:#a855f7;color:#fff;border:none;font-size:1rem;font-weight:700;cursor:pointer;margin-top:12px">Kaydet</button>';
+  mobileModal(html);
+}
+
+function maarifRehberlikSave(className, sIdx){
+  var inp = document.getElementById('maarif-rehberlik-input');
+  if(!inp) return;
+  var student = db.classes[className][sIdx];
+  if(!student) return;
+  if(!student.maarif) student.maarif = {};
+  student.maarif.rehberlik_notu = inp.value.trim();
+  save();
+  mobileCloseModal();
+  mobileRenderPerformance(className);
+  setTimeout(function(){
+    var el = document.getElementById('branch-' + sIdx + '-genel');
+    if(el) el.classList.add('open');
+  }, 50);
+}
+
+// Not ekle
+function maarifNote(className, sIdx, itemKey){
+  const student = db.classes[className][sIdx];
+  if(!student) return;
+  if(!student.maarif) student.maarif = {};
+  
+  const noteKey = itemKey + '_note';
+  const currentNote = student.maarif[noteKey] || '';
+  
+  const html = '<h3 style="color:#fff;margin-bottom:12px;font-size:1rem">Not Ekle</h3>' +
+    '<textarea id="maarif-note-input" placeholder="Kısa not girin..." maxlength="100" ' +
+    'style="width:100%;height:80px;padding:12px;border-radius:12px;background:#0d1117;border:1px solid rgba(255,255,255,0.1);color:#fff;font-size:0.9rem;resize:none">' + currentNote + '</textarea>' +
+    '<button onclick=\'maarifNoteSave("' + className + '",' + sIdx + ',"' + itemKey + '")\' ' +
+    'style="width:100%;padding:12px;border-radius:12px;background:var(--accent);color:#fff;border:none;font-size:1rem;font-weight:700;cursor:pointer;margin-top:12px">Kaydet</button>';
+  
+  mobileModal(html);
+}
+
+function maarifNoteSave(className, sIdx, itemKey){
+  const inp = document.getElementById('maarif-note-input');
+  if(!inp) return;
+  
+  const student = db.classes[className][sIdx];
+  if(!student) return;
+  if(!student.maarif) student.maarif = {};
+  
+  const noteKey = itemKey + '_note';
+  student.maarif[noteKey] = inp.value.trim();
+  save();
+  mobileCloseModal();
+  mobileRenderPerformance(className);
 }
 
 // Custom Modal Sistemi (tarayıcı alert/confirm yerine)
