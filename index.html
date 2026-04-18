@@ -1573,45 +1573,119 @@ input, textarea, select, [contenteditable] {
 .login-user-info .user-email{font-size:.8rem;color:#8b949e;margin-top:2px}
 #login-error{display:none;margin-top:14px;padding:12px;border-radius:10px;background:rgba(239,68,68,0.1);border:1px solid rgba(239,68,68,0.3);color:#ef4444;font-size:.82rem}
 
-/* ===== MOBİL GİRİŞ EKRANI DÜZELTMELERİ ===== */
+/* ===== MOBİL GİRİŞ EKRANI — PERFORMANS + LAYOUT DÜZELTMELERİ ===== */
 @media (max-width:768px){
+  /* Login ekranı taşma engeli */
+  #login-screen{overflow:hidden}
+
+  /* ★ GPU KATİLİ: filter animasyonlarını kapat */
+  .butterfly{
+    width:min(160px,36vw) !important;
+    filter:drop-shadow(0 0 12px rgba(168,85,247,.4)) !important;
+    animation-name:bfFlyMale !important;
+    /* wingGlowPulse (sürekli filter animate) iptal */
+  }
+  .butterfly-female{
+    width:min(140px,32vw) !important;
+    filter:drop-shadow(0 0 12px rgba(236,72,153,.4)) !important;
+    animation-name:bfFlyFemale !important;
+  }
+
+  /* ★ Nebula blur(20px) animasyonlu = GPU ölümü → statik ve hafif */
+  .space-nebula{
+    filter:blur(12px) !important;
+    animation:none !important;
+    opacity:.6 !important;
+  }
+
+  /* ★ Yıldız tozu pseudo-element (inset:-50% = 4x viewport) → küçült */
+  #login-screen::before, #login-screen::after{
+    inset:-20% !important;
+    animation-duration:200s !important;
+    opacity:.4 !important;
+  }
+
+  /* ★ SVG feGaussianBlur filtresi → mobilde kaldır */
+  .butterfly svg g[filter]{
+    filter:none !important;
+  }
+
+  /* ★ Kelebek glow aura → basitleştir */
+  .butterfly::after{
+    filter:none !important;
+    opacity:.3 !important;
+    animation:none !important;
+  }
+
+  /* ★ Love spark (blur 12px + animasyon) → basitleştir */
+  .love-spark{
+    filter:blur(6px) !important;
+  }
+
+  /* ★ Kalp parçacıkları — yarısını gizle */
+  .tiny-heart:nth-child(4),
+  .tiny-heart:nth-child(5),
+  .tiny-heart:nth-child(6){
+    display:none !important;
+  }
+
+  /* ★ Kayan yıldız sayısını azalt */
+  .space-shoot:nth-child(3){display:none !important}
+
+  /* Gezegenler küçült */
+  .space-planet-1{width:80px;height:80px;top:8%;right:3%}
+  .space-planet-1::after{inset:-12px -20px}
+  .space-planet-2{width:50px;height:50px;bottom:22%;left:5%}
+  .space-planet-3{width:30px;height:30px;top:65%;right:8%}
+
+  /* Login kutusu düzeni */
   .login-box{
-    padding:38vh 20px 20px;
+    padding:34vh 20px 20px;
     width:92%;max-width:360px;
   }
-  .butterfly{width:min(180px,40vw)}
-  .butterfly-female{width:min(160px,36vw)}
-  .space-planet-1{width:90px;height:90px;top:8%;right:4%}
-  .space-planet-1::after{inset:-14px -22px}
-  .space-planet-2{width:55px;height:55px;bottom:22%;left:5%}
-  .space-planet-3{width:35px;height:35px;top:65%;right:10%}
-  .space-shoot{width:80px}
-  .login-brand{font-size:1.3rem}
+  .login-brand{font-size:1.25rem}
   .login-brand-sub{font-size:.55rem}
+  .login-divider{margin:22px 0 18px}
 }
+
 @media (max-width:420px){
-  .login-box{padding:30vh 16px 16px;width:95%}
-  .butterfly{width:min(140px,38vw)}
-  .butterfly-female{width:min(120px,34vw)}
-  .butterfly-male,.butterfly-female{top:18%}
-  .space-planet-1{width:70px;height:70px;top:6%;right:2%}
-  .space-planet-1::after{inset:-10px -16px}
-  .space-planet-2{width:40px;height:40px}
-  .space-planet-3{width:28px;height:28px}
-  .login-brand{font-size:1.15rem}
-  .login-divider{margin:20px 0 16px}
-  .login-box .login-sub{font-size:.8rem;margin:0 0 16px}
+  .login-box{padding:28vh 16px 16px;width:95%}
+  .butterfly{width:min(120px,34vw) !important}
+  .butterfly-female{width:min(105px,30vw) !important}
+  .butterfly-male,.butterfly-female{top:16% !important}
+  .space-planet-1{width:60px;height:60px;top:5%;right:2%}
+  .space-planet-1::after{inset:-8px -14px}
+  .space-planet-2{width:38px;height:38px}
+  .space-planet-3{width:24px;height:24px}
+  .login-brand{font-size:1.1rem}
+  .login-divider{margin:18px 0 14px}
+  .login-box .login-sub{font-size:.8rem;margin:0 0 14px}
+  /* Yıldız katmanlarını azalt */
+  .space-stars-3{display:none !important}
 }
+
 @media (max-height:600px){
-  .login-box{padding:18vh 20px 12px}
-  .butterfly{width:min(120px,30vw)}
-  .butterfly-female{width:min(100px,26vw)}
-  .butterfly-male,.butterfly-female{top:12%}
-  .space-planet-1{width:60px;height:60px}
-  .space-planet-2{width:35px;height:35px}
-  .space-planet-3{width:22px;height:22px}
-  .login-divider{margin:14px 0 12px}
-  .login-box .login-ver{margin-top:14px;padding-top:10px}
+  .login-box{padding:16vh 20px 10px}
+  .butterfly{width:min(100px,28vw) !important}
+  .butterfly-female{width:min(85px,24vw) !important}
+  .butterfly-male,.butterfly-female{top:10% !important}
+  .space-planet-1{width:50px;height:50px}
+  .space-planet-2{width:30px;height:30px}
+  .space-planet-3{display:none}
+  .login-divider{margin:12px 0 10px}
+  .login-box .login-ver{margin-top:12px;padding-top:8px}
+  /* Landscape modda daha fazla animasyonu kapat */
+  .space-nebula{display:none !important}
+  .love-burst{display:none !important}
+  .love-spark{display:none !important}
+}
+
+/* ★ Düşük güçlü cihazlar için ek önlem */
+@media (max-width:768px) and (max-height:900px){
+  /* Kanat çırpma hızını düşür (daha az GPU) */
+  .butterfly .bf-wing{animation-duration:.6s !important}
+  .bf-spark{animation:none !important;opacity:.6 !important}
+  .bf-tail,.bf-tail-2{animation:none !important}
 }
 
 #main-app-content{display:none}
@@ -11652,7 +11726,7 @@ function doLogout(){
 
 // Google Auth başlat
 let _authRetryCount = 0;
-const _AUTH_MAX_RETRIES = 50; // 50 × 200ms = 10sn
+const _AUTH_MAX_RETRIES = 50;
 function _showAuthError(msg){
   var errBox = document.getElementById('login-error');
   if(errBox){
@@ -11661,15 +11735,12 @@ function _showAuthError(msg){
   }
 }
 function initGoogleAuth(){
-  // Script yüklenme hatası kontrolü
   if(window._gsiLoadFailed){
     _showAuthError('Google servisleri yüklenemedi.<br><small>İnternet bağlantınızı kontrol edin.</small>');
     return;
   }
   if(typeof google === 'undefined' || !google.accounts){
-    _authRetryCount++;
-    if(_authRetryCount > _AUTH_MAX_RETRIES){
-      console.error('Google API 10sn içinde yüklenemedi');
+    if(++_authRetryCount > _AUTH_MAX_RETRIES){
       _showAuthError('Google bağlantısı kurulamadı.<br><small>İnternet bağlantınızı kontrol edip sayfayı yenileyin.</small>');
       return;
     }
@@ -12132,11 +12203,7 @@ let _syncBootRetry = 0;
 function syncBootstrap(){
   if(!currentUser){ return; }
   if(typeof tokenClient === 'undefined' || !tokenClient){
-    if(++_syncBootRetry > 40){ // 12sn sonra vazgeç
-      console.warn('syncBootstrap: tokenClient bulunamadı, senkron devre dışı');
-      try{ syncSetStatus('off','Senkron kapalı'); }catch(e){}
-      return;
-    }
+    if(++_syncBootRetry > 40) return;
     setTimeout(syncBootstrap, 300);
     return;
   }
@@ -12186,20 +12253,20 @@ document.addEventListener('visibilitychange', function(){
 
 // unlockApp bittikten sonra senkronu başlat
 (function hookUnlock(){
-  var _hookRetry = 0;
-  function _tryHook(){
+  var _r=0;
+  function _try(){
     if(typeof window.unlockApp !== 'function'){
-      if(++_hookRetry > 100) return; // 10sn sonra vazgeç
-      setTimeout(_tryHook, 100);
+      if(++_r>100)return;
+      setTimeout(_try, 100);
       return;
     }
-    const _originalUnlock = window.unlockApp;
+    const _orig = window.unlockApp;
     window.unlockApp = function(user){
-      _originalUnlock.apply(this, arguments);
+      _orig.apply(this, arguments);
       setTimeout(syncBootstrap, 600);
     };
   }
-  _tryHook();
+  _try();
 })();
 
 // Sayfa yüklenince auth başlat
