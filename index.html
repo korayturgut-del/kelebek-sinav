@@ -1572,6 +1572,122 @@ input, textarea, select, [contenteditable] {
 .login-user-info .user-name{font-weight:700;font-size:1rem;color:#f0f6fc}
 .login-user-info .user-email{font-size:.8rem;color:#8b949e;margin-top:2px}
 #login-error{display:none;margin-top:14px;padding:12px;border-radius:10px;background:rgba(239,68,68,0.1);border:1px solid rgba(239,68,68,0.3);color:#ef4444;font-size:.82rem}
+
+/* ===== MOBİL GİRİŞ EKRANI DÜZELTMELERİ ===== */
+@media (max-width:768px){
+  #login-screen{
+    overflow:hidden;
+  }
+  .login-box{
+    padding:38vh 20px 20px;
+    width:92%;
+    max-width:360px;
+  }
+  /* Kelebekler mobilde biraz küçülsün ve taşmasın */
+  .butterfly{
+    width:min(180px,40vw);
+  }
+  .butterfly-female{
+    width:min(160px,36vw);
+  }
+  /* Gezegenler mobilde küçülsün ve taşmasın */
+  .space-planet-1{
+    width:90px;height:90px;top:8%;right:4%;
+  }
+  .space-planet-1::after{
+    inset:-14px -22px;
+  }
+  .space-planet-2{
+    width:55px;height:55px;bottom:22%;left:5%;
+  }
+  .space-planet-3{
+    width:35px;height:35px;top:65%;right:10%;
+  }
+  /* Meteorlar taşmasın */
+  .space-shoot{
+    width:80px;
+  }
+  .login-brand{
+    font-size:1.3rem;
+  }
+  .login-brand-sub{
+    font-size:.55rem;
+  }
+}
+
+@media (max-width:420px){
+  .login-box{
+    padding:32vh 16px 16px;
+    width:95%;
+  }
+  .butterfly{
+    width:min(140px,38vw);
+  }
+  .butterfly-female{
+    width:min(120px,34vw);
+  }
+  /* Çok dar ekranlarda kelebeklerin uçuş alanını daralt */
+  .butterfly-male{
+    top:18%;
+  }
+  .butterfly-female{
+    top:18%;
+  }
+  .space-planet-1{
+    width:70px;height:70px;top:6%;right:2%;
+  }
+  .space-planet-1::after{
+    inset:-10px -16px;
+  }
+  .space-planet-2{
+    width:40px;height:40px;
+  }
+  .space-planet-3{
+    width:28px;height:28px;
+  }
+  .login-brand{
+    font-size:1.15rem;
+  }
+  .login-divider{
+    margin:20px 0 16px;
+  }
+  .login-box .login-sub{
+    font-size:.8rem;
+    margin:0 0 16px;
+  }
+}
+
+/* Kısa ekranlar (landscape mobil veya düşük yükseklik) */
+@media (max-height:600px){
+  .login-box{
+    padding:22vh 20px 12px;
+  }
+  .butterfly{
+    width:min(120px,30vw);
+  }
+  .butterfly-female{
+    width:min(100px,26vw);
+  }
+  .butterfly-male, .butterfly-female{
+    top:12%;
+  }
+  .space-planet-1{
+    width:60px;height:60px;
+  }
+  .space-planet-2{
+    width:35px;height:35px;
+  }
+  .space-planet-3{
+    width:22px;height:22px;
+  }
+  .login-divider{
+    margin:14px 0 12px;
+  }
+  .login-box .login-ver{
+    margin-top:14px;padding-top:10px;
+  }
+}
+
 #main-app-content{display:none}
 .topbar .user-badge{
   display:flex;align-items:center;gap:8px;padding:0 16px;
