@@ -11048,37 +11048,44 @@ async function loadFromDrive(){
 
 // Drive dosya seçim modalı
 function showDriveFileModal(files){
-  // Modal oluştur
   const modal = document.createElement('div');
-  modal.className = 'perf-modal active';
   modal.id = 'drive-file-modal';
-  modal.style.zIndex = '99999';
+  modal.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.8);z-index:999999;display:flex;align-items:center;justify-content:center;padding:20px';
   
-  let html = '<div class="perf-modal-content" style="max-width:500px">';
-  html += '<h2 style="margin-bottom:20px">📁 Drive Yedekleri</h2>';
-  html += '<div style="max-height:400px;overflow-y:auto">';
+  const box = document.createElement('div');
+  box.style.cssText = 'background:#161b22;border-radius:20px;width:100%;max-width:500px;max-height:80vh;overflow:hidden;display:flex;flex-direction:column';
+  
+  let html = '<div style="padding:20px;border-bottom:1px solid rgba(255,255,255,0.1)">';
+  html += '<h2 style="color:#fff;margin:0;font-size:1.2rem">📁 Drive Yedekleri</h2>';
+  html += '</div>';
+  html += '<div style="overflow-y:auto;flex:1;padding:16px">';
   
   files.forEach(file => {
     const date = file.modifiedTime ? new Date(file.modifiedTime).toLocaleDateString('tr-TR') : '';
     html += `
-      <div class="mobile-list-item" onclick="loadDriveFile('${file.id}')" style="margin-bottom:12px;cursor:pointer">
-        <div class="mobile-list-item-content">
-          <div class="mobile-list-item-title">${file.name}</div>
-          <div class="mobile-list-item-subtitle">${date}</div>
+      <div class="mobile-list-item" onclick="loadDriveFile('${file.id}')" style="margin-bottom:12px;cursor:pointer;background:#0d1117;border:1px solid rgba(255,255,255,0.1);border-radius:12px;padding:14px">
+        <div style="flex:1">
+          <div style="color:#fff;font-weight:700;margin-bottom:4px">${file.name}</div>
+          <div style="color:#8b949e;font-size:0.85rem">${date}</div>
         </div>
-        <span class="mobile-list-item-arrow">›</span>
+        <span style="color:#8b949e;font-size:1.5rem">›</span>
       </div>
     `;
   });
   
   html += '</div>';
-  html += '<div style="margin-top:20px;text-align:right">';
-  html += '<button class="btn btn-ghost" onclick="closeDriveModal()">Kapat</button>';
-  html += '</div>';
+  html += '<div style="padding:16px;border-top:1px solid rgba(255,255,255,0.1)">';
+  html += '<button onclick="closeDriveModal()" style="width:100%;padding:12px;border-radius:12px;background:transparent;border:1px solid rgba(255,255,255,0.2);color:#fff;font-size:1rem;cursor:pointer">Kapat</button>';
   html += '</div>';
   
-  modal.innerHTML = html;
+  box.innerHTML = html;
+  modal.appendChild(box);
   document.body.appendChild(modal);
+  
+  // Dışarıya tıklayınca kapat
+  modal.addEventListener('click', function(e){
+    if(e.target === modal) closeDriveModal();
+  });
 }
 
 function closeDriveModal(){
