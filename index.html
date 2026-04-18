@@ -1574,119 +1574,134 @@ input, textarea, select, [contenteditable] {
 #login-error{display:none;margin-top:14px;padding:12px;border-radius:10px;background:rgba(239,68,68,0.1);border:1px solid rgba(239,68,68,0.3);color:#ef4444;font-size:.82rem}
 
 /* ============================================================
-   MOBİL GİRİŞ EKRANI — GPU CRASH ÖNLEMİ
-   Kelebekler + blur + drop-shadow animasyonları mobil GPU'yu öldürüyor.
-   Masaüstünde hiçbir şey değişmiyor — sadece mobilde hafifletme.
+   MOBİL GİRİŞ EKRANI — TÜM ANİMASYONLAR KAPALI
+   Kelebekler yan yana sabit, ortada.
    ============================================================ */
 @media (max-width:768px){
   #login-screen{overflow:hidden}
 
-  /* ★★★ KELEBEKLER — tüm filter animasyonlarını ve SVG blur'u kapat ★★★ */
-  .butterfly,
-  .butterfly-female{
-    filter:none !important;
-    -webkit-filter:none !important;
-  }
-  /* wingGlowPulse sürekli filter animate ediyor — tamamen iptal */
-  .butterfly-male{
-    animation:bfFlyMale 18s cubic-bezier(.4,.1,.6,.9) infinite !important;
-    width:min(150px,35vw) !important;
-  }
-  .butterfly-female{
-    animation:bfFlyFemale 18s cubic-bezier(.35,.15,.55,.85) infinite !important;
-    width:min(130px,32vw) !important;
-  }
-  /* SVG içindeki feGaussianBlur filtrelerini devre dışı bırak */
-  .butterfly svg g[filter]{filter:none !important}
-  /* Kanat üstü ışıltı noktaları — animasyonu durdur */
-  .bf-spark{animation:none !important;opacity:.5 !important}
-  /* Kuyruk telleri — animasyonu durdur */
-  .bf-tail,.bf-tail-2{animation:none !important}
-  /* Kelebek arkası aura — tamamen kapat */
-  .butterfly::after{display:none !important}
-
-  /* ★★★ NEBULA — blur(20px) + animasyon = GPU ölümü ★★★ */
-  .space-nebula{
-    filter:none !important;
-    -webkit-filter:none !important;
+  /* ★ TÜM animasyonları öldür ★ */
+  #login-screen *,
+  #login-screen *::before,
+  #login-screen *::after{
     animation:none !important;
-    opacity:.4 !important;
+    -webkit-animation:none !important;
+    transition:none !important;
+  }
+  /* Sadece loginRise animasyonu kalsın (kart girişi) */
+  .login-box{
+    animation:loginRise 1s cubic-bezier(.22,1,.36,1) both !important;
   }
 
-  /* ★★★ Yıldız tozu pseudo-elementleri (inset:-50% = 4x viewport) ★★★ */
+  /* ★ Tüm filtreleri kaldır ★ */
+  #login-screen .butterfly,
+  #login-screen .butterfly svg,
+  #login-screen .butterfly svg g,
+  #login-screen .space-nebula,
+  #login-screen .space-shoot,
+  #login-screen .butterfly::after{
+    filter:none !important;
+    -webkit-filter:none !important;
+  }
+
+  /* ★ Ağır dekoratif katmanları tamamen kapat ★ */
+  .space-nebula,
+  .love-spark,
+  .love-burst,
+  .space-shoot,
+  .space-stars-2,
+  .space-stars-3,
+  .butterfly::after{
+    display:none !important;
+  }
+
+  /* ★ Pseudo yıldız tozu — küçült ve dondur ★ */
   #login-screen::before,
   #login-screen::after{
-    inset:-10% !important;
-    animation-duration:300s !important;
-    opacity:.3 !important;
+    inset:0 !important;
+    opacity:.25 !important;
+    transform:none !important;
   }
 
-  /* ★★★ Flört efektleri — hepsini kapat ★★★ */
-  .love-spark{display:none !important}
-  .love-burst{display:none !important}
+  /* ★ Gezegenler — küçült ve dondur ★ */
+  .space-planet-1{width:60px;height:60px;top:6%;right:4%}
+  .space-planet-1::after{display:none}
+  .space-planet-2{width:35px;height:35px;bottom:18%;left:6%}
+  .space-planet-3{width:22px;height:22px;top:58%;right:10%}
 
-  /* ★★★ Meteorlar — 1 tane yeter ★★★ */
-  .space-shoot:nth-child(2),
-  .space-shoot:nth-child(3){display:none !important}
-  .space-shoot{
+  /* ★★★ KELEBEKLER — yan yana, ortada, sabit ★★★ */
+  .butterfly-male,
+  .butterfly-female{
+    position:absolute !important;
+    top:16vh !important;
+    transform:none !important;
     filter:none !important;
     -webkit-filter:none !important;
-    width:70px !important;
   }
-
-  /* ★★★ Gezegenler — küçült, gölgeleri azalt ★★★ */
-  .space-planet{
-    box-shadow:inset -4px -6px 15px rgba(0,0,0,.5) !important;
+  .butterfly-male{
+    width:110px !important;
+    left:calc(50% - 118px) !important;
   }
-  .space-planet-1{width:75px;height:75px;top:7%;right:3%}
-  .space-planet-1::after{inset:-10px -18px}
-  .space-planet-2{width:45px;height:45px;bottom:20%;left:5%}
-  .space-planet-3{width:28px;height:28px;top:62%;right:8%}
-  .space-planet{animation-duration:30s !important}
+  .butterfly-female{
+    width:100px !important;
+    left:calc(50% + 18px) !important;
+    transform:scaleX(-1) !important;
+  }
+  .butterfly svg g[filter]{filter:none !important}
 
-  /* ★★★ 3. yıldız katmanını kapat ★★★ */
-  .space-stars-3{display:none !important}
+  /* Kanat çırpma donuk kalsın */
+  .bf-wing{transform:scaleX(1) skewY(0deg) !important}
 
-  /* Login kutusu responsive */
+  /* Login kutusu */
   .login-box{
-    padding:32vh 20px 20px;
+    padding:24px 20px 20px !important;
     width:92%;max-width:360px;
+    position:relative !important;
+    margin-top:calc(16vh + 100px) !important;
   }
-  .login-brand{font-size:1.2rem}
-  .login-brand-sub{font-size:.55rem}
-  .login-divider{margin:20px 0 16px}
-  /* Kanat çırpma yavaşlat — daha az GPU baskısı */
-  .butterfly .bf-wing{animation-duration:.7s !important}
+  .login-brand{font-size:1.15rem}
+  .login-brand-sub{font-size:.52rem}
+  .login-divider{margin:18px 0 14px}
+  .login-box .login-sub{font-size:.82rem;margin:0 0 14px}
+  .login-box .login-ver{margin-top:16px;padding-top:10px}
+  .login-tagline{font-size:.65rem}
 }
 
 /* Küçük telefon */
 @media (max-width:420px){
-  .login-box{padding:26vh 16px 16px;width:95%}
-  .butterfly-male{width:min(110px,30vw) !important}
-  .butterfly-female{width:min(95px,26vw) !important}
-  .butterfly-male,.butterfly-female{top:16% !important}
-  .space-planet-1{width:55px;height:55px;top:5%;right:2%}
-  .space-planet-1::after{inset:-6px -12px}
-  .space-planet-2{width:32px;height:32px}
-  .space-planet-3{width:20px;height:20px}
+  .butterfly-male{
+    width:90px !important;
+    left:calc(50% - 96px) !important;
+    top:12vh !important;
+  }
+  .butterfly-female{
+    width:80px !important;
+    left:calc(50% + 12px) !important;
+    top:12vh !important;
+  }
+  .login-box{margin-top:calc(12vh + 80px) !important;padding:16px !important;width:95%}
   .login-brand{font-size:1.05rem}
-  .login-box .login-sub{font-size:.8rem;margin:0 0 14px}
-  /* 2. yıldız katmanını da kapat */
-  .space-stars-2{display:none !important}
+  .space-planet-1{width:45px;height:45px}
+  .space-planet-2{width:25px;height:25px}
+  .space-planet-3{display:none}
 }
 
 /* Landscape / kısa ekran */
 @media (max-height:600px){
-  .login-box{padding:14vh 20px 10px}
-  .butterfly-male{width:min(90px,25vw) !important}
-  .butterfly-female{width:min(75px,22vw) !important}
-  .butterfly-male,.butterfly-female{top:8% !important}
-  .space-planet-1{width:40px;height:40px}
-  .space-planet-2,.space-planet-3{display:none}
-  .space-nebula{display:none !important}
+  .butterfly-male{
+    width:70px !important;top:4vh !important;
+    left:calc(50% - 76px) !important;
+  }
+  .butterfly-female{
+    width:60px !important;top:4vh !important;
+    left:calc(50% + 10px) !important;
+  }
+  .login-box{margin-top:calc(4vh + 60px) !important;padding:10px 16px !important}
+  .space-planet-1,.space-planet-2,.space-planet-3{display:none}
   #login-screen::before,#login-screen::after{display:none !important}
+  .space-stars{opacity:.3 !important}
   .login-divider{margin:10px 0 8px}
-  .login-box .login-ver{margin-top:10px;padding-top:6px}
+  .login-box .login-ver{margin-top:8px;padding-top:6px}
 }
 
 #main-app-content{display:none}
