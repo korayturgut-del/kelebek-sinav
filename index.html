@@ -321,33 +321,14 @@ label.lbl{font-size:.78rem;font-weight:600;color:var(--text2);display:block;marg
 .qcard-img-wrap img{pointer-events:none;width:100%;height:100%;object-fit:contain;display:block}
 .qcard-preview-text{font-size:.78rem;color:var(--text2);padding:8px 12px 6px;line-height:1.45;overflow-y:auto;flex:1}
 .qcard-pts{font-size:.75rem;font-weight:700;color:var(--text3);flex-shrink:0}
-.qcard-acts{display:flex;gap:4px;padding:0 10px 10px;flex-shrink:0;flex-wrap:wrap}
+.qcard-acts{display:flex;gap:4px;padding:0 10px 10px;flex-shrink:0}
 .qcard-act{
-  padding:6px 11px;border-radius:8px;background:var(--bg2);
-  border:1px solid var(--border);color:var(--text2);cursor:pointer;
-  font-size:.72rem;font-weight:600;transition:all .22s cubic-bezier(.4,0,.2,1);
-  display:inline-flex;align-items:center;gap:4px;
-  box-shadow:0 1px 3px rgba(0,0,0,.08);
+  padding:4px 10px;border-radius:6px;background:transparent;
+  border:1px solid transparent;color:var(--text3);cursor:pointer;
+  font-size:.72rem;transition:all .2s;
 }
-.qcard-act:hover{
-  background:var(--glass);
-  border-color:var(--border2);
-  color:var(--text);
-  transform:translateY(-1px);
-  box-shadow:0 3px 8px rgba(0,0,0,.12);
-}
-.qcard-act:active{transform:translateY(0);box-shadow:0 1px 3px rgba(0,0,0,.08)}
-.qcard-act.del{background:rgba(239,68,68,.08);border-color:rgba(239,68,68,.2);color:#ef4444}
-.qcard-act.del:hover{
-  background:rgba(239,68,68,.15);
-  border-color:rgba(239,68,68,.4);
-  color:#dc2626;
-}
-.qcard-act.note-btn{background:rgba(251,191,36,.1);border-color:rgba(251,191,36,.3);color:#f59e0b}
-.qcard-act.note-btn:hover{background:rgba(251,191,36,.2);border-color:rgba(251,191,36,.5);color:#d97706}
-.qcard-act.note-btn.active{background:linear-gradient(135deg,#fbbf24,#f59e0b);border-color:#f59e0b;color:#fff;font-weight:700}
-.qcard.is-note{border-left:4px solid #fbbf24;background:linear-gradient(135deg,rgba(251,191,36,.04),rgba(245,158,11,.02))}
-.qcard.is-note .qcard-type{background:linear-gradient(135deg,#fbbf24,#f59e0b);color:#fff}
+.qcard-act:hover{background:var(--glass);border-color:var(--border);color:var(--text2)}
+.qcard-act.del:hover{color:var(--red);border-color:rgba(239,68,68,.3)}
 .opts-bar{display:flex;gap:5px;padding:0 14px 10px;flex-shrink:0}
 .opt-dot{
   width:24px;height:24px;border-radius:50%;
@@ -2382,16 +2363,18 @@ input, textarea, select, [contenteditable] {
 
     <div class="perf-controls">
       <button class="perf-btn perf-btn-danger" onclick="perfDeleteSelected()" id="perfDeleteSelectedBtn" style="display:none">🗑️ Seçilileri Sil</button>
+      <button class="perf-btn perf-btn-success" onclick="perfSaveData()">💾 Kaydet</button>
+      <button class="perf-btn perf-btn-warning" onclick="perfExportToExcel()">📥 Özet Rapor (Excel)</button>
       <button class="perf-btn perf-btn-info" onclick="perfShowDetailedReport()">📋 Detaylı Rapor</button>
       <button class="perf-btn" onclick="perfShowSummaryReport()" style="background:#8b5cf6;color:white">📄 Tek Sayfa Özet</button>
       <button class="perf-btn" onclick="perfShowBulkScoreModal()" style="background:#ec4899;color:white">💯 Toplu Puan Dağıt</button>
       <button class="perf-btn" onclick="perfShowColumnEditor()" style="background:#06b6d4;color:white">✏️ Sütun İsimleri</button>
-      <button class="perf-btn" onclick="perfExportBackup()" style="background:linear-gradient(135deg,#6366f1,#4f46e5);color:white;font-weight:700">💾 Kaydet</button>
-      <button class="perf-btn" onclick="document.getElementById('perfImportBackupInput').click()" style="background:linear-gradient(135deg,#0ea5e9,#0284c7);color:white;font-weight:700">📂 Dosya Yükle</button>
+      <button class="perf-btn" onclick="perfExportBackup()" style="background:#10b981;color:white">💾 Yedek Al</button>
+      <button class="perf-btn" onclick="document.getElementById('perfImportBackupInput').click()" style="background:#f59e0b;color:white">📂 Yedek Yükle</button>
       <button class="perf-btn perf-btn-danger" onclick="perfClearClassData()">🗑️ Bu Şubeyi Temizle</button>
     </div>
     
-    <input type="file" id="perfImportBackupInput" accept=".klb,.json" style="display:none" onchange="perfImportBackup(event)">
+    <input type="file" id="perfImportBackupInput" accept=".json" style="display:none" onchange="perfImportBackup(event)">
 
     <div class="perf-table-container">
       <table class="perf-table" id="perfStudentTable">
@@ -2606,6 +2589,119 @@ let activeClass=null,salonCnt=0,qCnt=0,calismaCnt=0,currentExamName='',currentCa
 let _activeQId=null,_weSavedRange=null;
 
 function save(){try{localStorage.setItem('kelebek_db2',JSON.stringify(db));}catch(e){}}
+
+// ============================================================
+// KLB DOSYA SİSTEMİ
+// ============================================================
+const KLB_MAGIC = 'KLBF\x01\x00';
+const KLB_APP_ID = 'KorayKelebek2024';
+
+function klbEncode(payload){
+  const json = JSON.stringify(payload);
+  const b64 = btoa(unescape(encodeURIComponent(json)));
+  return KLB_MAGIC + KLB_APP_ID + '\n' + b64;
+}
+function klbDecode(raw){
+  if(!raw.startsWith(KLB_MAGIC + KLB_APP_ID)){
+    throw new Error('Bu dosya geçerli bir Kelebek dosyası değil.\nSadece Koray Kelebek Sınav Editörü ile açılabilir.');
+  }
+  const b64 = raw.slice((KLB_MAGIC + KLB_APP_ID + '\n').length);
+  const json = decodeURIComponent(escape(atob(b64)));
+  return JSON.parse(json);
+}
+function klbDownload(content, filename){
+  const blob = new Blob([content], {type:'application/octet-stream'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url; a.download = filename;
+  document.body.appendChild(a); a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+}
+function klbAskName(defaultName, title, onConfirm){
+  const old = document.getElementById('klb-name-modal');
+  if(old) old.remove();
+  const overlay = document.createElement('div');
+  overlay.id = 'klb-name-modal';
+  overlay.style.cssText = `
+    position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:999999;
+    display:flex;align-items:center;justify-content:center;
+    backdrop-filter:blur(8px);animation:tipFade .25s ease;
+  `;
+  overlay.innerHTML = `
+    <div style="
+      background:var(--bg1);border:1px solid var(--border2);border-radius:20px;
+      padding:32px;width:420px;max-width:92vw;
+      box-shadow:0 24px 64px rgba(0,0,0,.6);
+    ">
+      <div style="font-size:1.15rem;font-weight:700;color:var(--text);margin-bottom:6px">
+        💾 ${title}
+      </div>
+      <div style="font-size:.82rem;color:var(--text2);margin-bottom:20px">
+        Dosya adını girin — <b>.klb</b> uzantısı otomatik eklenecek
+      </div>
+      <input id="klb-name-input" type="text" value="${defaultName}"
+        style="
+          width:100%;padding:12px 16px;border-radius:10px;
+          background:var(--bg2);border:1px solid var(--border2);
+          color:var(--text);font-size:.95rem;outline:none;
+          box-sizing:border-box;margin-bottom:20px;
+        "
+        placeholder="Dosya adı..."
+      />
+      <div style="display:flex;gap:10px;justify-content:flex-end">
+        <button onclick="document.getElementById('klb-name-modal').remove()"
+          style="
+            padding:10px 22px;border-radius:10px;border:1px solid var(--border);
+            background:var(--glass);color:var(--text2);cursor:pointer;font-size:.85rem;
+          ">İptal</button>
+        <button id="klb-confirm-btn"
+          style="
+            padding:10px 22px;border-radius:10px;border:none;
+            background:linear-gradient(135deg,var(--accent),var(--blue));
+            color:#fff;cursor:pointer;font-size:.85rem;font-weight:600;
+          ">💾 Kaydet</button>
+      </div>
+    </div>
+  `;
+  document.body.appendChild(overlay);
+  const input = document.getElementById('klb-name-input');
+  const confirmBtn = document.getElementById('klb-confirm-btn');
+  setTimeout(()=>{ input.focus(); input.select(); }, 50);
+  const doSave = ()=>{
+    const name = input.value.trim();
+    if(!name){ input.style.borderColor='#ef4444'; return; }
+    overlay.remove();
+    onConfirm(name);
+  };
+  confirmBtn.onclick = doSave;
+  input.onkeydown = e=>{ if(e.key==='Enter') doSave(); if(e.key==='Escape') overlay.remove(); };
+  overlay.onclick = e=>{ if(e.target===overlay) overlay.remove(); };
+}
+function klbToast(msg, type){
+  const old = document.getElementById('klb-toast');
+  if(old) old.remove();
+  const colors = {
+    success:'linear-gradient(135deg,#10b981,#059669)',
+    error:'linear-gradient(135deg,#ef4444,#dc2626)',
+    info:'linear-gradient(135deg,#6366f1,#4f46e5)'
+  };
+  const t = document.createElement('div');
+  t.id = 'klb-toast';
+  t.style.cssText = `
+    position:fixed;top:80px;right:20px;z-index:999999;
+    background:${colors[type]||colors.info};
+    color:#fff;padding:14px 20px;border-radius:14px;
+    font-size:.84rem;font-weight:600;line-height:1.5;
+    box-shadow:0 16px 40px rgba(0,0,0,.35);
+    animation:tipFade .3s cubic-bezier(.4,0,.2,1);
+    white-space:pre-line;max-width:320px;
+  `;
+  t.textContent = msg;
+  document.body.appendChild(t);
+  setTimeout(()=>{ t.style.opacity='0'; t.style.transition='opacity .3s'; setTimeout(()=>t.remove(),300); }, 3000);
+}
+
 
 // ============================================================
 // YEDEKLEME & GERİ YÜKLEME SİSTEMİ
@@ -3354,12 +3450,6 @@ function toggleFullwidth(id){
   q.fullwidth=!q.fullwidth;
   save();renderQuestions();
 }
-function toggleQNote(id){
-  const q=db.questions.find(q=>q.id===id);
-  if(!q)return;
-  q.isNote=!q.isNote;
-  save();renderQuestions();
-}
 function moveQ(id,dir){
   const i=db.questions.findIndex(q=>q.id===id);
   const j=i+dir;if(j<0||j>=db.questions.length)return;
@@ -3382,15 +3472,9 @@ function renderQuestions(){
           <span style="font-weight:700;color:var(--amber);flex:1">${q.title||''}</span>
         </div>
         <div class="qcard-acts">
-          <button class="qcard-act" onclick="event.stopPropagation();moveQ('${q.id}',-1)" data-tip="Yukarı taşı">
-            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M18 15l-6-6-6 6"/></svg>
-          </button>
-          <button class="qcard-act" onclick="event.stopPropagation();moveQ('${q.id}',1)" data-tip="Aşağı taşı">
-            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M6 9l6 6 6-6"/></svg>
-          </button>
-          <button class="qcard-act del" onclick="event.stopPropagation();delQ('${q.id}')" data-tip="Sil">
-            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M3 6h18M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2"/></svg>
-          </button>
+          <button class="qcard-act" onclick="event.stopPropagation();moveQ('${q.id}',-1)" data-tip="Yukarı">↑</button>
+          <button class="qcard-act" onclick="event.stopPropagation();moveQ('${q.id}',1)" data-tip="Aşağı">↓</button>
+          <button class="qcard-act del" onclick="event.stopPropagation();delQ('${q.id}')" data-tip="Sil">🗑</button>
         </div>
       </div>`;
     }
@@ -3417,7 +3501,7 @@ function renderQuestions(){
     // Resim önizleme HTML'i
     const imgPreview=firstImg?`<div class="qcard-img-wrap"><img src="${firstImg}"></div>`:'';
     
-    return `<div class="qcard${_activeQId===q.id?' active':''}${q.fullwidth?' fullwidth':''}${q.isNote?' is-note':''}" id="qcard-${q.id}" onclick="openQEdit('${q.id}')">
+    return `<div class="qcard${_activeQId===q.id?' active':''}${q.fullwidth?' fullwidth':''}" id="qcard-${q.id}" onclick="openQEdit('${q.id}')">
       <div class="qcard-head">
         <span class="qcard-num">${qNum}.</span>
         <span class="qcard-type ${tClass[q.type]||'mc'}">${tLabel[q.type]||''}</span>
@@ -3434,28 +3518,14 @@ function renderQuestions(){
       </div>
       ${opts}
       <div class="qcard-acts">
-        <button class="qcard-act" onclick="event.stopPropagation();moveQ('${q.id}',-1)" data-tip="Yukarı taşı">
-          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M18 15l-6-6-6 6"/></svg>
-        </button>
-        <button class="qcard-act" onclick="event.stopPropagation();moveQ('${q.id}',1)" data-tip="Aşağı taşı">
-          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M6 9l6 6 6-6"/></svg>
-        </button>
-        <button class="qcard-act" onclick="event.stopPropagation();toggleQType('${q.id}')" data-tip="Tür değiştir">
-          ${q.type==='mc'?'<span style="font-size:.7rem">ÇS→AÇ</span>':'<span style="font-size:.7rem">AÇ→ÇS</span>'}
-        </button>
-        <button class="qcard-act note-btn ${q.isNote?'active':''}" onclick="event.stopPropagation();toggleQNote('${q.id}')" data-tip="${q.isNote?'Soru olarak işaretle':'Açıklama olarak işaretle'}">
-          ${q.isNote?'<span>✓ Açıklama</span>':'<span>📝 Açıklama</span>'}
-        </button>
-        <button class="qcard-act" onclick="event.stopPropagation();toggleFullwidth('${q.id}')" data-tip="Tam genişlik">
-          ${q.fullwidth?'<span style="font-size:.8rem">◧</span>':'<span style="font-size:.8rem">↔</span>'}
-        </button>
-        <label class="qcard-act" onclick="event.stopPropagation()" data-tip="Resim ekle">
-          <span style="font-size:.85rem">📷</span>
+        <button class="qcard-act" onclick="event.stopPropagation();moveQ('${q.id}',-1)" data-tip="Yukarı">↑</button>
+        <button class="qcard-act" onclick="event.stopPropagation();moveQ('${q.id}',1)" data-tip="Aşağı">↓</button>
+        <button class="qcard-act" onclick="event.stopPropagation();toggleQType('${q.id}')" data-tip="Tip değiştir" style="font-size:.68rem">${q.type==='mc'?'→AÇ':'→ÇS'}</button>
+        <button class="qcard-act" onclick="event.stopPropagation();toggleFullwidth('${q.id}')" data-tip="Tam genişlik">${q.fullwidth?'◧':'↔'}</button>
+        <label class="qcard-act" onclick="event.stopPropagation()" data-tip="Resim Ekle">📷
           <input type="file" accept="image/*" style="display:none" onchange="qAddImgFile(this,'${q.id}')">
         </label>
-        <button class="qcard-act del" onclick="event.stopPropagation();delQ('${q.id}')" data-tip="Sil">
-          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M3 6h18M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2"/></svg>
-        </button>
+        <button class="qcard-act del" onclick="event.stopPropagation();delQ('${q.id}')" data-tip="Sil">🗑</button>
       </div>
     </div>`;
   }).join('');
@@ -4989,6 +5059,7 @@ function feSave() {
     // Hiç nesne yoksa boş kaydet
     const url = FE.canvas.toDataURL({ format: 'png', quality: 1 });
     if (FE.imgEl) FE.imgEl.src = url;
+    if(typeof qeditSaveText === 'function') qeditSaveText();
     feClose();
     return;
   }
@@ -5023,6 +5094,9 @@ function feSave() {
   });
   
   if (FE.imgEl) FE.imgEl.src = url;
+  
+  // Düzenlenmiş resmi soru verisine kaydet
+  if(typeof qeditSaveText === 'function') qeditSaveText();
   
   feClose();
 }
@@ -6637,12 +6711,6 @@ function toggleFullwidthCalisma(id){
   q.fullwidth=!q.fullwidth;
   save();renderQuestionsCalisma();
 }
-function toggleQNoteCalisma(id){
-  const q=db.calismaQuestions.find(q=>q.id===id);
-  if(!q)return;
-  q.isNote=!q.isNote;
-  save();renderQuestionsCalisma();
-}
 function moveQCalisma(id,dir){
   const i=db.calismaQuestions.findIndex(q=>q.id===id);
   const j=i+dir;if(j<0||j>=db.calismaQuestions.length)return;
@@ -6682,7 +6750,7 @@ function renderQuestionsCalisma(){
     // Resim önizleme HTML'i
     const imgPreview=firstImg?`<div class="qcard-img-wrap"><img src="${firstImg}"></div>`:'';
     
-    return `<div class="qcard ${_activeQId===q.id?'active':''}${q.fullwidth?' fullwidth':''}${q.isNote?' is-note':''}" onclick="openQEditCalisma('${q.id}')">
+    return `<div class="qcard ${_activeQId===q.id?'active':''}${q.fullwidth?' fullwidth':''}" onclick="openQEditCalisma('${q.id}')">
       <div class="qcard-head">
         <div class="qcard-num">${qNum}.</div>
         <div class="qcard-type ${typeClass}">${typeLabel}</div>
@@ -6698,24 +6766,11 @@ function renderQuestionsCalisma(){
       </div>
       ${opts}
       <div class="qcard-acts">
-        <button class="qcard-act" onclick="event.stopPropagation();moveQCalisma('${q.id}',-1)" data-tip="Yukarı taşı">
-          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M18 15l-6-6-6 6"/></svg>
-        </button>
-        <button class="qcard-act" onclick="event.stopPropagation();moveQCalisma('${q.id}',1)" data-tip="Aşağı taşı">
-          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M6 9l6 6 6-6"/></svg>
-        </button>
-        <button class="qcard-act" onclick="event.stopPropagation();toggleQTypeCalisma('${q.id}')" data-tip="Tür değiştir">
-          ${q.type==='mc'?'<span style="font-size:.7rem">ÇS→AÇ</span>':'<span style="font-size:.7rem">AÇ→ÇS</span>'}
-        </button>
-        <button class="qcard-act note-btn ${q.isNote?'active':''}" onclick="event.stopPropagation();toggleQNoteCalisma('${q.id}')" data-tip="${q.isNote?'Soru olarak işaretle':'Açıklama olarak işaretle'}">
-          ${q.isNote?'<span>✓ Açıklama</span>':'<span>📝 Açıklama</span>'}
-        </button>
-        <button class="qcard-act" onclick="event.stopPropagation();toggleFullwidthCalisma('${q.id}')" data-tip="Tam genişlik">
-          ${q.fullwidth?'<span style="font-size:.8rem">◧</span>':'<span style="font-size:.8rem">↔</span>'}
-        </button>
-        <button class="qcard-act del" onclick="event.stopPropagation();delQCalisma('${q.id}')" data-tip="Sil">
-          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M3 6h18M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2"/></svg>
-        </button>
+        <button class="qcard-act" onclick="event.stopPropagation();moveQCalisma('${q.id}',-1)" title="Yukarı">↑</button>
+        <button class="qcard-act" onclick="event.stopPropagation();moveQCalisma('${q.id}',1)" title="Aşağı">↓</button>
+        <button class="qcard-act" onclick="event.stopPropagation();toggleQTypeCalisma('${q.id}')" title="Tip değiştir" style="font-size:.68rem">${q.type==='mc'?'→AÇ':q.type==='open'?'→ÇS':'→ÇS'}</button>
+        <button class="qcard-act" onclick="event.stopPropagation();toggleFullwidthCalisma('${q.id}')" title="Tam genişlik">${q.fullwidth?'◧':'↔'}</button>
+        <button class="qcard-act del" onclick="event.stopPropagation();delQCalisma('${q.id}')" title="Sil">✕</button>
       </div>
     </div>`;
   }).join('');
@@ -7166,7 +7221,7 @@ function renderGroupQuestions(group){
     
     const imgPreview=firstImg?`<div class="qcard-img-wrap"><img src="${firstImg}"></div>`:'';
     
-    return `<div class="qcard${_activeQId===q.id?' active':''}${q.fullwidth?' fullwidth':''}${q.isNote?' is-note':''}" id="qcard-${q.id}" onclick="openGroupQEdit('${q.id}')">
+    return `<div class="qcard${_activeQId===q.id?' active':''}${q.fullwidth?' fullwidth':''}" id="qcard-${q.id}" onclick="openGroupQEdit('${q.id}')">
       <div class="qcard-head">
         <span class="qcard-num">${qNum}.</span>
         <span class="qcard-type ${tClass[q.type]||'mc'}">${tLabel[q.type]||''}</span>
@@ -7183,28 +7238,14 @@ function renderGroupQuestions(group){
       </div>
       ${opts}
       <div class="qcard-acts">
-        <button class="qcard-act" onclick="event.stopPropagation();moveGroupQ('${q.id}',-1)" data-tip="Yukarı taşı">
-          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M18 15l-6-6-6 6"/></svg>
-        </button>
-        <button class="qcard-act" onclick="event.stopPropagation();moveGroupQ('${q.id}',1)" data-tip="Aşağı taşı">
-          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M6 9l6 6 6-6"/></svg>
-        </button>
-        <button class="qcard-act" onclick="event.stopPropagation();toggleGroupQType('${q.id}')" data-tip="Tür değiştir">
-          ${q.type==='mc'?'<span style="font-size:.7rem">ÇS→AÇ</span>':'<span style="font-size:.7rem">AÇ→ÇS</span>'}
-        </button>
-        <button class="qcard-act note-btn ${q.isNote?'active':''}" onclick="event.stopPropagation();toggleGroupQNote('${q.id}')" data-tip="${q.isNote?'Soru olarak işaretle':'Açıklama olarak işaretle'}">
-          ${q.isNote?'<span>✓ Açıklama</span>':'<span>📝 Açıklama</span>'}
-        </button>
-        <button class="qcard-act" onclick="event.stopPropagation();toggleGroupQFullwidth('${q.id}')" data-tip="Tam genişlik">
-          ${q.fullwidth?'<span style="font-size:.8rem">◧</span>':'<span style="font-size:.8rem">↔</span>'}
-        </button>
-        <label class="qcard-act" onclick="event.stopPropagation()" data-tip="Resim ekle">
-          <span style="font-size:.85rem">📷</span>
+        <button class="qcard-act" onclick="event.stopPropagation();moveGroupQ('${q.id}',-1)" data-tip="Yukarı">↑</button>
+        <button class="qcard-act" onclick="event.stopPropagation();moveGroupQ('${q.id}',1)" data-tip="Aşağı">↓</button>
+        <button class="qcard-act" onclick="event.stopPropagation();toggleGroupQType('${q.id}')" data-tip="Tip değiştir" style="font-size:.68rem">${q.type==='mc'?'→AÇ':'→ÇS'}</button>
+        <button class="qcard-act" onclick="event.stopPropagation();toggleGroupQFullwidth('${q.id}')" data-tip="Tam genişlik">${q.fullwidth?'◧':'↔'}</button>
+        <label class="qcard-act" onclick="event.stopPropagation()" data-tip="Resim Ekle">📷
           <input type="file" accept="image/*" style="display:none" onchange="qAddImgFileToGroup(this,'${q.id}')">
         </label>
-        <button class="qcard-act del" onclick="event.stopPropagation();delGroupQ('${q.id}')" data-tip="Sil">
-          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M3 6h18M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2"/></svg>
-        </button>
+        <button class="qcard-act del" onclick="event.stopPropagation();delGroupQ('${q.id}')" data-tip="Sil">🗑</button>
       </div>
     </div>`;
   }).join('');
@@ -7356,39 +7397,39 @@ function exportGroupDb(){
   var group=db.examGroups.find(function(g){return g.id===activeExamGroup;});
   if(!group)return;
   if(!group.questions||group.questions.length===0){alert('⚠️ Kaydedilecek soru yok!');return;}
+
+  // Default isim - ama HER ZAMAN sor
+  var defName=(group.name||'Sinav').replace(/[^\w\sğüşıöçĞÜŞİÖÇ-]/g,'_').trim() || 'Sinav';
   
-  var eff=getGroupSettings(group);
-  
-  var exportData={
-    version:'1.0',
-    type:'kelebek-exam-group',
-    name:group.name,
-    date:new Date().toLocaleString('tr-TR'),
-    settings:eff,
-    groupSettings:group.settings||{},
-    questions:group.questions
-  };
-  
-  var jsonStr=JSON.stringify(exportData);
-  var blob=new Blob([jsonStr],{type:'application/json'});
-  var url=URL.createObjectURL(blob);
-  var fileName=(group.name||'Sinav').replace(/[^a-zA-Z0-9ğüşıöçĞÜŞİÖÇ\s_-]/g,'_')+'.kdb';
-  
-  var a=document.createElement('a');
-  a.href=url;a.download=fileName;
-  document.body.appendChild(a);a.click();
-  document.body.removeChild(a);
-  URL.revokeObjectURL(url);
-  
-  alert('✅ Dosyaya kaydedildi: '+fileName);
+  klbAskName(defName, 'Sınav Grubunu Kaydet', function(name){
+    var eff=getGroupSettings(group);
+    var payload={
+      app: KLB_APP_ID,
+      type: 'exam-group',
+      version: '2.0',
+      savedAt: new Date().toISOString(),
+      fileName: name,
+      groupId: group.id,
+      groupName: group.name,
+      groupClasses: group.classes||[],
+      groupSettings: group.settings||{},
+      settings: eff,
+      questions: group.questions
+    };
+    var content=klbEncode(payload);
+    var safe=name.replace(/[^\w\sğüşıöçĞÜŞİÖÇ-]/g,'_');
+    klbDownload(content, safe+'.klb');
+    klbToast('✅ Kaydedildi: '+safe+'.klb\n'+group.questions.length+' soru', 'success');
+  });
 }
+
 
 function importGroupDb(){
   if(!activeExamGroup){alert('⚠️ Önce bir grup seçin!');return;}
   
   var input=document.createElement('input');
   input.type='file';
-  input.accept='.kdb,.db,.json';
+  input.accept='.klb,.kdb,.db,.json';
   
   input.onchange=function(e){
     var file=e.target.files[0];
@@ -7396,17 +7437,36 @@ function importGroupDb(){
     
     var ext=file.name.split('.').pop().toLowerCase();
     
-    if(ext==='db'){
-      // ZIP format (.db) — harici format
+    if(ext==='klb'){
+      // Yeni KLB format
+      var reader=new FileReader();
+      reader.onload=function(ev){
+        try{
+          var data=klbDecode(ev.target.result);
+          if(data.type!=='exam-group'&&data.type!=='exam')
+            throw new Error('Bu dosya bir sınav grubu dosyası değil! (Tür: '+data.type+')');
+          var group=db.examGroups.find(function(g){return g.id===activeExamGroup;});
+          if(!group)return;
+          if(group.questions&&group.questions.length>0){
+            if(!confirm('Mevcut sorular silinecek. Devam edilsin mi?'))return;
+          }
+          group.questions=data.questions||[];
+          if(data.groupSettings) group.settings=data.groupSettings;
+          save(); renderGroupEditor(group); renderExamGroups();
+          klbToast('✅ Yüklendi: '+file.name+'\n'+group.questions.length+' soru', 'success');
+        }catch(err){ klbToast('❌ '+err.message,'error'); }
+      };
+      reader.readAsText(file);
+    } else if(ext==='db'){
       importDbZipFile(file);
     } else {
-      // JSON format (.kdb veya .json)
       importDbJsonFile(file);
     }
   };
   
   input.click();
 }
+
 
 function importDbJsonFile(file){
   var reader=new FileReader();
@@ -7878,19 +7938,6 @@ function toggleGroupQFullwidth(qid){
   if(!q)return;
   
   q.fullwidth=!q.fullwidth;
-  save();
-  renderGroupQuestions(group);
-}
-
-function toggleGroupQNote(qid){
-  if(!activeExamGroup)return;
-  const group=db.examGroups.find(g=>g.id===activeExamGroup);
-  if(!group)return;
-  
-  const q=group.questions.find(qq=>qq.id===qid);
-  if(!q)return;
-  
-  q.isNote=!q.isNote;
   save();
   renderGroupQuestions(group);
 }
@@ -8491,40 +8538,49 @@ document.addEventListener('click',e=>{
 // ============================================================
 function saveCalismaToFile(){
   if(!db.calismaQuestions||db.calismaQuestions.length===0){
-    alert('⚠️ Kaydedilecek soru yok!');
-    return;
+    alert('⚠️ Kaydedilecek soru yok!'); return;
   }
   
-  const fileName=(currentCalismaName||'CalismaKagidi').replace(/[^a-zA-Z0-9ğüşıöçĞÜŞİÖÇ\s-]/g,'_')+'.json';
-  
-  const exportData={
-    version:'1.0',
-    type:'calisma',
-    name:currentCalismaName||'Çalışma Kağıdı',
-    date:new Date().toLocaleString('tr-TR'),
-    questions:db.calismaQuestions,
-    settings:db.settings
-  };
-  
-  const jsonStr=JSON.stringify(exportData,null,2);
-  const blob=new Blob([jsonStr],{type:'application/json'});
-  const url=URL.createObjectURL(blob);
-  
-  const a=document.createElement('a');
-  a.href=url;
-  a.download=fileName;
-  document.body.appendChild(a);
-  a.click();
-  document.body.removeChild(a);
-  URL.revokeObjectURL(url);
-  
-  alert('✅ Dosyaya kaydedildi: '+fileName);
+  // Default isim - ama HER ZAMAN sor
+  const defName = (currentCalismaName||db.settings.sinavBasligi||'CalismaKagidi')
+    .replace(/[^\w\sğüşıöçĞÜŞİÖÇ-]/g,'_').trim() || 'CalismaKagidi';
+
+  klbAskName(defName, 'Çalışma Sayfasını Kaydet', (name)=>{
+    const payload = {
+      app: KLB_APP_ID,
+      type: 'worksheet',
+      version: '2.0',
+      savedAt: new Date().toISOString(),
+      fileName: name,
+      calismaQuestions: db.calismaQuestions||[],
+      savedCalisma: db.savedCalisma||[],
+      currentCalismaName: currentCalismaName,
+      calismaCnt: calismaCnt,
+      settings: {
+        okulAdi: db.settings.okulAdi||'',
+        dersAdi: db.settings.dersAdi||'',
+        sinavBasligi: db.settings.sinavBasligi||'',
+        sinavTarihi: db.settings.sinavTarihi||'',
+        sinifSube: db.settings.sinifSube||'',
+        ogretmenAdi: db.settings.ogretmenAdi||'',
+        notlarCalisma: db.settings.notlarCalisma||'',
+        filigran: db.settings.filigran||'',
+        filigranOpaklik: db.settings.filigranOpaklik||8,
+        teachers: db.settings.teachers||[]
+      }
+    };
+    const content = klbEncode(payload);
+    const safeFilename = name.replace(/[^\w\sğüşıöçĞÜŞİÖÇ-]/g,'_');
+    klbDownload(content, safeFilename + '.klb');
+    klbToast(`✅ Kaydedildi: ${safeFilename}.klb`, 'success');
+  });
 }
+
 
 function loadCalismaFromFile(){
   const input=document.createElement('input');
   input.type='file';
-  input.accept='.klb,.json,.kdb,.db,.dbc';
+  input.accept='.json,.kdb,.db';
   
   input.onchange=function(e){
     const file=e.target.files[0];
@@ -8532,8 +8588,8 @@ function loadCalismaFromFile(){
     
     var ext=file.name.split('.').pop().toLowerCase();
     
-    // ── Eski ZIP format (.db) ──────────────────────────────────
     if(ext==='db'){
+      // ZIP format — harici .db dosyası
       var reader2=new FileReader();
       reader2.onload=function(ev2){
         try{
@@ -8562,67 +8618,48 @@ function loadCalismaFromFile(){
           currentCalismaName=file.name.replace(/\.db$/i,'');
           calismaCnt=converted.length;
           save();renderQuestionsCalisma();updateCalismaTitle();
-          alert('✅ .db dosyasından yüklendi!\n'+converted.length+' soru aktarıldı.');
+          alert('✅ .db dosyasından yüklendi!\n'+converted.length+' soru');
         }catch(err){alert('❌ .db dosyası okunamadı!\n'+err.message);}
       };
       reader2.readAsArrayBuffer(file);
       return;
     }
-
-    // ── Yeni KLB format (.klb) ─────────────────────────────────
-    if(ext==='klb'){
-      var rKlb=new FileReader();
-      rKlb.onload=function(evKlb){
-        try{
-          var raw=evKlb.target.result;
-          var MAGIC='KLBF\x01\x00KorayKelebek2024\n';
-          if(!raw.startsWith(MAGIC))
-            throw new Error('Bu geçerli bir Kelebek dosyası değil.\nSadece Koray Kelebek Sınav Editörü açabilir.');
-          var b64=raw.slice(MAGIC.length);
-          var data=JSON.parse(decodeURIComponent(escape(atob(b64))));
-          if(data.type!=='worksheet'&&data.type!=='calisma'&&data.type!=='exam')
-            throw new Error('Bu dosya bir çalışma sayfası değil! (Tür: '+data.type+')');
-          if(db.calismaQuestions.length>0){
-            if(!confirm('Mevcut sorular silinecek. Dosyadan yüklensin mi?'))return;
-          }
-          db.calismaQuestions=data.calismaQuestions||data.questions||[];
-          currentCalismaName=data.currentCalismaName||data.name||file.name.replace(/\.klb$/i,'');
-          if(data.settings) Object.assign(db.settings,data.settings);
-          calismaCnt=0;
-          db.calismaQuestions.forEach(function(q){
-            var n=parseInt((q.id||'').replace('c_',''))||0;
-            if(n>=calismaCnt)calismaCnt=n+1;
-          });
-          save();loadSettings();renderQuestionsCalisma();updateCalismaTitle();
-          alert('✅ Yüklendi: '+file.name+'\n'+db.calismaQuestions.length+' soru');
-        }catch(err){alert('❌ '+err.message);}
-      };
-      rKlb.readAsText(file);
-      return;
-    }
     
-    // ── Eski JSON formatları (.json, .kdb, .dbc) ───────────────
     const reader=new FileReader();
     reader.onload=function(event){
       try{
         const data=JSON.parse(event.target.result);
-        if(data.type!=='calisma'&&data.type!=='kelebek-exam-group'&&data.type!=='exam'&&data.type!=='worksheet'){
-          alert('⚠️ Bu geçerli bir çalışma dosyası değil!');
+        
+        // Hem calisma hem kelebek-exam-group hem exam formatını kabul et
+        if(data.type!=='calisma'&&data.type!=='kelebek-exam-group'&&data.type!=='exam'){
+          alert('⚠️ Bu geçerli bir dosya değil!');
           return;
         }
+        
         if(db.calismaQuestions.length>0){
           if(!confirm('Mevcut sorular silinecek. Dosyadan yüklensin mi?'))return;
         }
-        db.calismaQuestions=data.calismaQuestions||data.questions||[];
-        currentCalismaName=data.currentCalismaName||data.name||'Yüklenen Çalışma';
-        if(data.settings) Object.assign(db.settings,data.settings);
+        
+        db.calismaQuestions=data.questions||[];
+        currentCalismaName=data.name||'Yüklenen Çalışma';
+        
+        if(data.settings){
+          Object.assign(db.settings,data.settings);
+        }
+        
         calismaCnt=0;
         db.calismaQuestions.forEach(function(q){
           var n=parseInt((q.id||'').replace('c_',''))||0;
           if(n>=calismaCnt)calismaCnt=n+1;
         });
-        save();loadSettings();renderQuestionsCalisma();updateCalismaTitle();
-        alert('✅ Yüklendi: '+(data.name||file.name)+'\n'+db.calismaQuestions.length+' soru');
+        
+        save();
+        loadSettings();
+        renderQuestionsCalisma();
+        updateCalismaTitle();
+        
+        alert('✅ Dosyadan yüklendi: '+(data.name||file.name)+'\n'+db.calismaQuestions.length+' soru');
+        
       }catch(err){
         alert('❌ Dosya okunamadı!\n'+err.message);
       }
@@ -8637,88 +8674,106 @@ function loadCalismaFromFile(){
 // DOSYAYA KAYDETME VE YÜKLEME (Sınav Editörü)
 // ============================================================
 function saveExamToFile(){
-  if(!db.questions||db.questions.length===0){
-    alert('⚠️ Kaydedilecek soru yok!');
-    return;
-  }
-  
-  const fileName=(currentExamName||'Sinav').replace(/[^a-zA-Z0-9ğüşıöçĞÜŞİÖÇ\s-]/g,'_')+'.json';
-  
-  const exportData={
-    version:'1.0',
-    type:'exam',
-    name:currentExamName||'Sınav',
-    date:new Date().toLocaleString('tr-TR'),
-    questions:db.questions,
-    settings:db.settings
-  };
-  
-  const jsonStr=JSON.stringify(exportData,null,2);
-  const blob=new Blob([jsonStr],{type:'application/json'});
-  const url=URL.createObjectURL(blob);
-  
-  const a=document.createElement('a');
-  a.href=url;
-  a.download=fileName;
-  document.body.appendChild(a);
-  a.click();
-  document.body.removeChild(a);
-  URL.revokeObjectURL(url);
-  
-  alert('✅ Dosyaya kaydedildi: '+fileName);
+  const hasQuestions = (db.questions&&db.questions.length>0) ||
+                       (db.examGroups&&db.examGroups.some(g=>g.questions&&g.questions.length>0));
+  if(!hasQuestions){ alert('⚠️ Kaydedilecek soru yok!'); return; }
+
+  // Default isim - ama HER ZAMAN sor
+  const defName = (db.settings.sinavBasligi||db.settings.okulAdi||currentExamName||'Sinav')
+    .replace(/[^\w\sğüşıöçĞÜŞİÖÇ-]/g,'_').trim() || 'Sinav';
+
+  klbAskName(defName, 'Sınavı Kaydet', (name)=>{
+    const payload = {
+      app: KLB_APP_ID,
+      type: 'exam',
+      version: '2.0',
+      savedAt: new Date().toISOString(),
+      fileName: name,
+      questions: db.questions||[],
+      examGroups: db.examGroups||[],
+      currentExamName: currentExamName,
+      currentExamGroup: currentExamGroup,
+      activeExamGroup: activeExamGroup,
+      qCnt: qCnt,
+      salonCnt: salonCnt,
+      salons: db.salons||[],
+      savedExams: db.savedExams||[],
+      settings: {
+        okulAdi: db.settings.okulAdi||'',
+        dersAdi: db.settings.dersAdi||'',
+        sinavBasligi: db.settings.sinavBasligi||'',
+        sinavTarihi: db.settings.sinavTarihi||'',
+        sinavSure: db.settings.sinavSure||'',
+        sinifSube: db.settings.sinifSube||'',
+        ogretmenAdi: db.settings.ogretmenAdi||'',
+        notlar: db.settings.notlar||'',
+        filigran: db.settings.filigran||'',
+        filigranOpaklik: db.settings.filigranOpaklik||8,
+        showAnswerKey: db.settings.showAnswerKey||false,
+        pageMargin: db.settings.pageMargin||'normal',
+        fontSize: db.settings.fontSize||'normal',
+        teachers: db.settings.teachers||[]
+      }
+    };
+    const content = klbEncode(payload);
+    const safeFilename = name.replace(/[^\w\sğüşıöçĞÜŞİÖÇ-]/g,'_');
+    klbDownload(content, safeFilename + '.klb');
+    const s = db.settings;
+    const info = [s.ogretmenAdi, s.dersAdi, s.sinavBasligi].filter(Boolean).join(' · ');
+    klbToast(`✅ Kaydedildi: ${safeFilename}.klb${info ? '\n'+info : ''}`, 'success');
+  });
 }
+
 
 function loadExamFromFile(){
   const input=document.createElement('input');
   input.type='file';
-  input.accept='.json';
+  input.accept='.klb,.json';
   
   input.onchange=function(e){
     const file=e.target.files[0];
     if(!file)return;
     
+    const ext=file.name.split('.').pop().toLowerCase();
     const reader=new FileReader();
+    
     reader.onload=function(event){
       try{
-        const data=JSON.parse(event.target.result);
-        
-        // Dosya formatını kontrol et
-        if(data.type!=='exam'){
-          alert('⚠️ Bu bir sınav dosyası değil!');
-          return;
+        let data;
+        if(ext==='klb'){
+          data = klbDecode(event.target.result);
+          if(data.type !== 'exam' && data.type !== 'exam-group')
+            throw new Error('Bu dosya bir sınav dosyası değil! (Tür: '+data.type+')');
+        } else {
+          data = JSON.parse(event.target.result);
+          if(data.type!=='exam' && data.type!=='kelebek-exam-group'){
+            alert('⚠️ Bu bir sınav dosyası değil!');
+            return;
+          }
         }
         
-        // Mevcut sorular varsa uyar
-        if(db.questions.length>0){
-          if(!confirm('Mevcut sorular silinecek. Dosyadan yüklensin mi?'))return;
+        if((db.questions&&db.questions.length>0)||(db.examGroups&&db.examGroups.some(g=>g.questions&&g.questions.length>0))){
+          if(!confirm('⚠️ Mevcut sınav verileri silinecek.\n\nDevam edilsin mi?')) return;
         }
         
-        // Verileri yükle
         db.questions=data.questions||[];
-        currentExamName=data.name||'Yüklenen Sınav';
+        db.examGroups=data.examGroups||[];
+        db.salons=data.salons||[];
+        db.savedExams=data.savedExams||[];
+        currentExamName=data.currentExamName||data.name||'';
+        currentExamGroup=data.currentExamGroup||[];
+        activeExamGroup=data.activeExamGroup||null;
+        qCnt=data.qCnt||0;
+        salonCnt=data.salonCnt||0;
+        if(data.settings) Object.assign(db.settings, data.settings);
         
-        // Ayarları güncelle (opsiyonel)
-        if(data.settings){
-          Object.assign(db.settings,data.settings);
-        }
+        save();loadSettings();renderQuestions();updatePts();updateExamTitle();
+        if(typeof renderSalonList==='function') renderSalonList();
+        if(typeof renderKChecks==='function') renderKChecks();
         
-        // Counter'ı güncelle
-        qCnt=0;
-        db.questions.forEach(q=>{
-          const n=parseInt((q.id||'').replace('q_',''))||0;
-          if(n>=qCnt)qCnt=n+1;
-        });
-        
-        save();
-        loadSettings();
-        renderQuestions();
-        updatePts();
-        updateExamTitle();
-        
-        alert('✅ Dosyadan yüklendi: '+data.name+'\n'+db.questions.length+' soru');
-        
+        klbToast(`✅ Yüklendi: ${file.name}\n${db.questions.length} soru · ${db.examGroups.length} grup`, 'success');
       }catch(err){
-        alert('❌ Dosya okunamadı!\n'+err.message);
+        alert('❌ '+err.message);
       }
     };
     reader.readAsText(file);
@@ -9694,97 +9749,19 @@ function perfExportToExcel(){
 }
 
 // Yedekleme
-// ============================================================
-// KLB DOSYA SİSTEMİ (Performans için)
-// ============================================================
-const KLB_MAGIC_P = 'KLBF\x01\x00';
-const KLB_APP_ID_P = 'KorayKelebek2024';
-
-function klbEncodeP(payload){
-  const json = JSON.stringify(payload);
-  const b64 = btoa(unescape(encodeURIComponent(json)));
-  return KLB_MAGIC_P + KLB_APP_ID_P + '\n' + b64;
-}
-function klbDecodeP(raw){
-  if(!raw.startsWith(KLB_MAGIC_P + KLB_APP_ID_P)){
-    throw new Error('Bu geçerli bir Kelebek dosyası değil.\nSadece Koray Kelebek Sınav Editörü açabilir.');
-  }
-  const b64 = raw.slice((KLB_MAGIC_P + KLB_APP_ID_P + '\n').length);
-  const json = decodeURIComponent(escape(atob(b64)));
-  return JSON.parse(json);
-}
-function klbDownloadP(content, filename){
-  const blob = new Blob([content], {type:'application/octet-stream'});
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  a.href = url; a.download = filename;
-  document.body.appendChild(a); a.click();
-  document.body.removeChild(a);
-  URL.revokeObjectURL(url);
-}
-function klbAskNameP(defaultName, title, onConfirm){
-  const old = document.getElementById('klb-name-modal-p');
-  if(old) old.remove();
-  const overlay = document.createElement('div');
-  overlay.id = 'klb-name-modal-p';
-  overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:999999;display:flex;align-items:center;justify-content:center;backdrop-filter:blur(8px)';
-  overlay.innerHTML = `
-    <div style="background:#1e293b;border:1px solid rgba(255,255,255,.15);border-radius:20px;padding:32px;width:420px;max-width:92vw;box-shadow:0 24px 64px rgba(0,0,0,.6)">
-      <div style="font-size:1.1rem;font-weight:700;color:#f0f6fc;margin-bottom:6px">💾 ${title}</div>
-      <div style="font-size:.82rem;color:#8b949e;margin-bottom:20px">Dosya adını girin — <b>.klb</b> uzantısı otomatik eklenecek</div>
-      <input id="klb-p-input" type="text" value="${defaultName}"
-        style="width:100%;padding:12px 16px;border-radius:10px;background:#0d1117;border:1px solid rgba(255,255,255,.2);color:#f0f6fc;font-size:.95rem;outline:none;box-sizing:border-box;margin-bottom:20px"
-        placeholder="Dosya adı..." />
-      <div style="display:flex;gap:10px;justify-content:flex-end">
-        <button onclick="document.getElementById('klb-name-modal-p').remove()"
-          style="padding:10px 22px;border-radius:10px;border:1px solid rgba(255,255,255,.1);background:rgba(255,255,255,.05);color:#8b949e;cursor:pointer;font-size:.85rem">İptal</button>
-        <button id="klb-p-confirm"
-          style="padding:10px 22px;border-radius:10px;border:none;background:linear-gradient(135deg,#6366f1,#4f46e5);color:#fff;cursor:pointer;font-size:.85rem;font-weight:600">💾 Kaydet</button>
-      </div>
-    </div>`;
-  document.body.appendChild(overlay);
-  const input = document.getElementById('klb-p-input');
-  const btn = document.getElementById('klb-p-confirm');
-  setTimeout(()=>{ input.focus(); input.select(); }, 50);
-  const doSave = ()=>{
-    const name = input.value.trim();
-    if(!name){ input.style.borderColor='#ef4444'; return; }
-    overlay.remove();
-    onConfirm(name);
-  };
-  btn.onclick = doSave;
-  input.onkeydown = e=>{ if(e.key==='Enter') doSave(); if(e.key==='Escape') overlay.remove(); };
-  overlay.onclick = e=>{ if(e.target===overlay) overlay.remove(); };
-}
-
 function perfExportBackup(){
-  if(!perfStudents || Object.keys(perfStudents).length === 0){
-    alert('⚠️ Kaydedilecek performans verisi yok!'); return;
-  }
-  const totalStudents = Object.values(perfStudents).reduce((s,arr)=>s+arr.length, 0);
-  const defName = ('Performans_' + (new Date().toLocaleDateString('tr-TR').replace(/\./g,'-')))
-    .replace(/[^\wğüşıöçĞÜŞİÖÇ\s-]/g,'_');
-
-  klbAskNameP(defName, 'Performans Verilerini Kaydet', (name)=>{
-    const payload = {
-      app: KLB_APP_ID_P,
-      type: 'performance',
-      version: '2.0',
-      savedAt: new Date().toISOString(),
-      fileName: name,
-      students: perfStudents,
-      columnNames: perfColumnNames,
-      summary: {
-        classCount: Object.keys(perfStudents).length,
-        studentCount: totalStudents,
-        classes: Object.keys(perfStudents)
-      }
-    };
-    const content = klbEncodeP(payload);
-    const safe = name.replace(/[^\wğüşıöçĞÜŞİÖÇ\s-]/g,'_');
-    klbDownloadP(content, safe + '.klb');
-    perfShowToast('✅ Kaydedildi: ' + safe + '.klb');
-  });
+  const backupData = {
+    version: '2.0',
+    exportDate: new Date().toISOString(),
+    students: perfStudents,
+    columnNames: perfColumnNames
+  };
+  const blob = new Blob([JSON.stringify(backupData, null, 2)], { type: 'application/json' });
+  const link = document.createElement('a');
+  link.href = URL.createObjectURL(blob);
+  link.download = `ogrenci_verileri_${new Date().toISOString().split('T')[0]}.json`;
+  link.click();
+  perfShowToast('✅ Yedek alındı!');
 }
 
 function perfImportBackup(event){
@@ -9794,24 +9771,12 @@ function perfImportBackup(event){
   const reader = new FileReader();
   reader.onload = function(e){
     try {
-      let backupData;
-      const raw = e.target.result;
-      
-      // KLB formatı mı yoksa eski JSON mi?
-      if(raw.startsWith(KLB_MAGIC_P + KLB_APP_ID_P)){
-        backupData = klbDecodeP(raw);
-        if(backupData.type !== 'performance')
-          throw new Error('Bu dosya bir performans dosyası değil! (Tür: ' + backupData.type + ')');
-        backupData = { students: backupData.students, columnNames: backupData.columnNames, exportDate: backupData.savedAt, version: backupData.version };
-      } else {
-        // Eski JSON yedek — geriye dönük uyumluluk
-        backupData = JSON.parse(raw);
-        if(!backupData.students || !backupData.version)
-          throw new Error('Geçersiz dosya formatı!');
+      const backupData = JSON.parse(e.target.result);
+      if(!backupData.students || !backupData.version){
+        throw new Error('Geçersiz yedek dosyası formatı!');
       }
-
       perfShowConfirmModal(
-        `Dosya: ${file.name}\nMevcut verileriniz silinecek. Yüklensin mi?`,
+        `Bu yedek ${new Date(backupData.exportDate).toLocaleDateString('tr-TR')} tarihinde oluşturulmuş. Mevcut verileriniz silinecek. Emin misiniz?`,
         () => {
           perfStudents = backupData.students;
           if(backupData.columnNames){
@@ -9824,11 +9789,11 @@ function perfImportBackup(event){
           perfRenderTable();
           perfUpdateStats();
           perfCloseConfirmModal();
-          perfShowToast('✅ Dosya yüklendi!');
+          perfShowToast('✅ Yedek yüklendi!');
         }
       );
     } catch(error){
-      alert('❌ Dosya yüklenemedi!\n\n' + error.message);
+      alert('❌ Hata: Yedek dosyası yüklenemedi!\n\n' + error.message);
     }
   };
   reader.readAsText(file);
