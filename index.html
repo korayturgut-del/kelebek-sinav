@@ -516,18 +516,31 @@ label.lbl{font-size:.78rem;font-weight:600;color:var(--text2);display:block;marg
 
 /* Z-Kitap PDF crop overlay */
 #zk-pdf-canvas-wrap{user-select:none;-webkit-user-select:none}
+#zk-pdf-canvas{display:block}
+.zk-pdf-tab{
+  padding:6px 14px;border-radius:6px 6px 0 0;border:1px solid var(--border);border-bottom:none;
+  background:var(--glass);color:var(--text2);cursor:pointer;font-size:.72rem;font-weight:600;
+  white-space:nowrap;transition:all .15s;display:flex;align-items:center;gap:6px;
+}
+.zk-pdf-tab:hover{background:var(--glass2);color:var(--text)}
+.zk-pdf-tab.active{background:var(--accent-glow);color:var(--accent);border-color:var(--accent)}
+.zk-pdf-tab .zk-tab-close{font-size:.6rem;opacity:.5;cursor:pointer;padding:2px}
+.zk-pdf-tab .zk-tab-close:hover{opacity:1;color:var(--red)}
 .zk-crop-preview{
-  display:inline-block;border:2px solid var(--green);border-radius:6px;
-  margin:4px;cursor:pointer;transition:all .2s;position:relative;overflow:hidden;
+  display:inline-flex;flex-direction:column;align-items:center;border:2px solid var(--green);border-radius:6px;
+  cursor:pointer;transition:all .2s;position:relative;overflow:hidden;flex-shrink:0;
 }
 .zk-crop-preview:hover{border-color:var(--accent);transform:scale(1.05)}
-.zk-crop-preview img{display:block;height:80px;width:auto}
+.zk-crop-preview img{display:block;height:70px;width:auto}
 .zk-crop-preview .zk-crop-num{
-  position:absolute;top:2px;left:2px;background:rgba(0,0,0,.7);color:#fff;
+  position:absolute;top:2px;left:2px;background:rgba(0,0,0,.75);color:#fff;
   font-size:.6rem;font-weight:700;padding:1px 5px;border-radius:4px;
 }
-
-/* Z-Kitap kart: resim görseli */
+.zk-crop-preview .zk-crop-del{
+  position:absolute;top:2px;right:2px;background:rgba(239,68,68,.85);color:#fff;
+  font-size:.55rem;font-weight:700;padding:1px 4px;border-radius:4px;cursor:pointer;display:none;
+}
+.zk-crop-preview:hover .zk-crop-del{display:block}
 .zk-card-img{flex:1;overflow:hidden;display:flex;align-items:center;justify-content:center;background:#f0f0f0;padding:4px}
 .zk-card-img img{max-width:100%;max-height:100%;object-fit:contain}
 ::-webkit-scrollbar-track{background:var(--bg0)}
@@ -2383,24 +2396,43 @@ input, textarea, select, [contenteditable] {
 <div id="zk-pdf-crop" style="display:none;position:fixed;inset:0;z-index:9000;background:rgba(0,0,0,.95);flex-direction:column">
   <div style="height:48px;background:var(--bg2);border-bottom:1px solid var(--border);display:flex;align-items:center;padding:0 12px;gap:8px;flex-shrink:0">
     <button class="icon-btn" onclick="zkPdfCropClose()">✕</button>
-    <span style="font-weight:700;font-size:.88rem;color:var(--text)">📄 PDF Soru Kesici</span>
-    <span id="zk-pdf-page-info" style="color:var(--text2);font-size:.78rem;margin-left:8px">Sayfa 1/1</span>
-    <div style="flex:1"></div>
-    <button class="icon-btn" onclick="zkPdfPrevPage()" data-tip="Önceki sayfa">◀</button>
-    <button class="icon-btn" onclick="zkPdfNextPage()" data-tip="Sonraki sayfa">▶</button>
+    <span style="font-weight:700;font-size:.85rem;color:var(--text)">📄 PDF Soru Kesici</span>
     <div class="we-div" style="height:24px"></div>
+    <button class="btn btn-ghost btn-xs" onclick="zkPdfAddMore()">➕ PDF Ekle</button>
+    <div style="flex:1"></div>
     <span id="zk-crop-count" style="font-size:.78rem;color:var(--green);font-weight:700">0 soru kesildi</span>
-    <button class="btn btn-success btn-sm" onclick="zkPdfCropDone()">✅ Tamamla</button>
+    <button class="btn btn-primary btn-sm" onclick="zkPdfPreview()">👁️ Önizle</button>
+    <button class="btn btn-success btn-sm" onclick="zkPdfCropDone()">✅ Z-Kitap Oluştur</button>
   </div>
-  <div style="padding:8px 12px;background:var(--bg3);font-size:.78rem;color:var(--text2);flex-shrink:0;display:flex;align-items:center;gap:12px;flex-wrap:wrap">
-    <span>📌 PDF üzerinde fare ile dikdörtgen çizerek soruları kesin.</span>
-    <span>Her kesim bir soru kartı olur.</span>
-    <button class="btn btn-ghost btn-xs" onclick="zkPdfUndoCrop()">↩️ Son Kesimi Geri Al</button>
+  <!-- Dosya tabları -->
+  <div id="zk-pdf-tabs" style="display:flex;gap:2px;padding:4px 12px;background:var(--bg3);overflow-x:auto;flex-shrink:0"></div>
+  <!-- Sayfa navigasyonu -->
+  <div style="padding:6px 12px;background:var(--bg2);font-size:.78rem;color:var(--text2);flex-shrink:0;display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+    <button class="icon-btn" onclick="zkPdfPrevPage()" style="width:28px;height:28px;font-size:.8rem">◀</button>
+    <span id="zk-pdf-page-info" style="font-weight:700;min-width:80px;text-align:center">Sayfa 1/1</span>
+    <button class="icon-btn" onclick="zkPdfNextPage()" style="width:28px;height:28px;font-size:.8rem">▶</button>
+    <div class="we-div" style="height:20px"></div>
+    <span style="font-size:.72rem">📌 Fare ile dikdörtgen çizerek soruları kesin</span>
+    <div style="flex:1"></div>
+    <button class="btn btn-ghost btn-xs" onclick="zkPdfUndoCrop()">↩️ Geri Al</button>
   </div>
-  <div id="zk-pdf-canvas-wrap" style="flex:1;overflow:auto;display:flex;justify-content:center;padding:16px;position:relative;cursor:crosshair">
-    <canvas id="zk-pdf-canvas" style="box-shadow:0 4px 24px rgba(0,0,0,.5);max-width:100%"></canvas>
-    <!-- Seçim dikdörtgeni -->
-    <div id="zk-crop-rect" style="display:none;position:absolute;border:2px dashed #ef4444;background:rgba(239,68,68,.12);z-index:10;pointer-events:none"></div>
+  <div id="zk-pdf-canvas-wrap" style="flex:1;overflow:auto;display:flex;justify-content:center;align-items:flex-start;padding:16px;position:relative;cursor:crosshair">
+    <canvas id="zk-pdf-canvas" style="box-shadow:0 4px 24px rgba(0,0,0,.5)"></canvas>
+    <div id="zk-crop-rect" style="display:none;position:absolute;border:2px dashed #ef4444;background:rgba(239,68,68,.15);z-index:10;pointer-events:none;border-radius:2px"></div>
+  </div>
+  <!-- Alt: kesilen parçaların küçük önizlemeleri -->
+  <div id="zk-crop-previews" style="max-height:100px;overflow-x:auto;overflow-y:hidden;display:flex;gap:6px;padding:8px 12px;background:var(--bg2);border-top:1px solid var(--border);flex-shrink:0"></div>
+</div>
+
+<!-- Z-KİTAP PDF ÖNİZLEME OVERLAY -->
+<div id="zk-pdf-preview" style="display:none;position:fixed;inset:0;z-index:9500;background:rgba(0,0,0,.9);flex-direction:column">
+  <div style="height:48px;background:var(--bg2);border-bottom:1px solid var(--border);display:flex;align-items:center;padding:0 12px;gap:8px;flex-shrink:0">
+    <button class="icon-btn" onclick="zkPdfPreviewClose()">✕</button>
+    <span style="font-weight:700;font-size:.85rem;color:var(--text)">👁️ Çalışma Kağıdı Önizleme</span>
+    <div style="flex:1"></div>
+    <button class="btn btn-primary btn-sm" onclick="zkPdfPrint()">🖨️ Yazdır / PDF</button>
+  </div>
+  <div id="zk-pdf-preview-content" style="flex:1;overflow:auto;padding:20px;display:flex;justify-content:center">
   </div>
 </div>
 
@@ -2588,14 +2620,12 @@ input, textarea, select, [contenteditable] {
 
     <div class="perf-controls">
       <button class="perf-btn perf-btn-danger" onclick="perfDeleteSelected()" id="perfDeleteSelectedBtn" style="display:none">🗑️ Seçilileri Sil</button>
-      <button class="perf-btn perf-btn-success" onclick="perfSaveData()">💾 Kaydet</button>
-      <button class="perf-btn perf-btn-warning" onclick="perfExportToExcel()">📥 Özet Rapor (Excel)</button>
       <button class="perf-btn perf-btn-info" onclick="perfShowDetailedReport()">📋 Detaylı Rapor</button>
       <button class="perf-btn" onclick="perfShowSummaryReport()" style="background:#8b5cf6;color:white">📄 Tek Sayfa Özet</button>
       <button class="perf-btn" onclick="perfShowBulkScoreModal()" style="background:#ec4899;color:white">💯 Toplu Puan Dağıt</button>
       <button class="perf-btn" onclick="perfShowColumnEditor()" style="background:#06b6d4;color:white">✏️ Sütun İsimleri</button>
-      <button class="perf-btn" onclick="perfExportBackup()" style="background:#10b981;color:white">💾 Yedek Al</button>
-      <button class="perf-btn" onclick="document.getElementById('perfImportBackupInput').click()" style="background:#f59e0b;color:white">📂 Yedek Yükle</button>
+      <button class="perf-btn" onclick="perfSaveToFile()" style="background:#10b981;color:white">💾 Kaydet</button>
+      <button class="perf-btn" onclick="document.getElementById('perfImportBackupInput').click()" style="background:#f59e0b;color:white">📂 Yükle</button>
       <button class="perf-btn perf-btn-danger" onclick="perfClearClassData()">🗑️ Bu Şubeyi Temizle</button>
     </div>
     
@@ -9974,20 +10004,37 @@ function perfExportToExcel(){
   link.click();
 }
 
-// Yedekleme
+// Dosyaya Kaydet - her seferinde öğretmen adı sorar
+function perfSaveToFile(){
+  // Önce localStorage'a kaydet
+  perfSaveData();
+  
+  const defaultName = (perfLastSaveName || 'Performans').replace(/[^\w\sğüşıöçĞÜŞİÖÇ-]/g,'_');
+  
+  klbAskName(defaultName, 'Performans Kaydet', function(name){
+    perfLastSaveName = name;
+    const backupData = {
+      version: '2.0',
+      exportDate: new Date().toISOString(),
+      fileName: name,
+      students: perfStudents,
+      columnNames: perfColumnNames
+    };
+    const blob = new Blob([JSON.stringify(backupData, null, 2)], { type: 'application/json' });
+    const link = document.createElement('a');
+    link.href = URL.createObjectURL(blob);
+    const safeName = name.replace(/[^\w\sğüşıöçĞÜŞİÖÇ-]/g,'_');
+    link.download = safeName + '.json';
+    link.click();
+    URL.revokeObjectURL(link.href);
+    perfShowToast('✅ Kaydedildi: ' + safeName + '.json');
+  });
+}
+let perfLastSaveName = '';
+
+// Yedekleme (eski fonksiyon korunuyor - uyumluluk için)
 function perfExportBackup(){
-  const backupData = {
-    version: '2.0',
-    exportDate: new Date().toISOString(),
-    students: perfStudents,
-    columnNames: perfColumnNames
-  };
-  const blob = new Blob([JSON.stringify(backupData, null, 2)], { type: 'application/json' });
-  const link = document.createElement('a');
-  link.href = URL.createObjectURL(blob);
-  link.download = `ogrenci_verileri_${new Date().toISOString().split('T')[0]}.json`;
-  link.click();
-  perfShowToast('✅ Yedek alındı!');
+  perfSaveToFile();
 }
 
 function perfImportBackup(event){
@@ -11547,292 +11594,268 @@ let zkSwipeStartY = 0;
 const ZK_STORAGE_KEY = 'zkitap_drawings_';
 
 // PDF state
-let zkPdfDoc = null;
+let zkPdfDocs = [];    // [{doc, name, totalPages}]
+let zkPdfActiveDoc = 0;
 let zkPdfPage = 1;
 let zkPdfTotalPages = 0;
-let zkPdfCrops = []; // [{dataUrl, page, rect}]
-let zkCropDragging = false;
-let zkCropStart = {x:0, y:0};
+let zkPdfCrops = [];   // [{dataUrl, page, docIdx, rect}]
 
-// ==== DOSYA YÜKLEME (KLB/JSON) ====
-function zkLoadFile(){
-  const input = document.createElement('input');
-  input.type = 'file';
-  input.accept = '.klb,.kdb,.db,.json';
-  input.onchange = function(e){
-    const file = e.target.files[0];
-    if(!file) return;
-    const ext = file.name.split('.').pop().toLowerCase();
-    const reader = new FileReader();
-    
-    if(ext === 'klb'){
-      reader.onload = function(ev){
-        try {
-          const data = klbDecode(ev.target.result);
-          let qs = data.calismaQuestions || data.questions || [];
-          if(!qs.length){ klbToast('⚠️ Dosyada soru bulunamadı!','error'); return; }
-          zkQuestions = qs.map((q,i) => ({...q, _zkType:'html', id: q.id||('zk_'+i)}));
-          zkRenderCards();
-          H('zkitap-title').textContent = '📖 ' + (data.fileName || data.groupName || file.name);
-          H('zkitap-meta').textContent = zkQuestions.filter(q=>q.type!=='section').length + ' soru';
-          klbToast('✅ ' + zkQuestions.length + ' soru yüklendi', 'success');
-        } catch(err){ klbToast('❌ ' + err.message, 'error'); }
-      };
-      reader.readAsText(file);
-    } else if(ext === 'db'){
-      reader.onload = function(ev){
-        try {
-          const buf = ev.target.result;
-          const zipFiles = parseZipEntries(new Uint8Array(buf));
-          if(!zipFiles['config.json']){ klbToast('⚠️ Geçersiz .db!','error'); return; }
-          const config = JSON.parse(new TextDecoder('utf-8').decode(zipFiles['config.json']));
-          if(!config.questions?.length){ klbToast('⚠️ Soru yok!','error'); return; }
-          zkQuestions = config.questions.map((extQ, idx) => {
-            let html = extQ.editor?.html || '';
-            const rid = extQ.randomid || '';
-            if(!html && rid && zipFiles[rid+'.jpg']){
-              const b64 = uint8ToBase64(zipFiles[rid+'.jpg']);
-              html = '<img src="data:image/jpeg;base64,'+b64+'" style="max-width:100%">';
-            }
-            return {id:'zk_'+Date.now()+'_'+idx, _zkType:'html', type:'open', text:html, options:{}, images:[]};
-          });
-          zkRenderCards();
-          H('zkitap-title').textContent = '📖 ' + file.name.replace(/\.[^.]+$/,'');
-          H('zkitap-meta').textContent = zkQuestions.length + ' soru';
-          klbToast('✅ ' + zkQuestions.length + ' soru yüklendi', 'success');
-        } catch(err){ klbToast('❌ ' + err.message, 'error'); }
-      };
-      reader.readAsArrayBuffer(file);
-    } else {
-      reader.onload = function(ev){
-        try {
-          const data = JSON.parse(ev.target.result);
-          let qs = data.calismaQuestions || data.questions || data.data?.calismaQuestions || data.data?.questions || [];
-          if(!qs.length){ klbToast('⚠️ Soru yok!','error'); return; }
-          zkQuestions = qs.map((q,i) => ({...q, _zkType:'html', id: q.id||('zk_'+i)}));
-          zkRenderCards();
-          H('zkitap-title').textContent = '📖 ' + (data.fileName || file.name);
-          H('zkitap-meta').textContent = zkQuestions.filter(q=>q.type!=='section').length + ' soru';
-          klbToast('✅ Yüklendi!', 'success');
-        } catch(err){ klbToast('❌ ' + err.message, 'error'); }
-      };
-      reader.readAsText(file);
-    }
-  };
-  input.click();
-}
-
-function zkLoadFromCalisma(){
-  if(!db.calismaQuestions?.length){ klbToast('⚠️ Çalışma kağıdında soru yok!','error'); return; }
-  zkQuestions = JSON.parse(JSON.stringify(db.calismaQuestions)).map((q,i) => ({...q, _zkType:'html', id: q.id||('zk_'+i)}));
-  zkRenderCards();
-  H('zkitap-title').textContent = '📖 ' + (currentCalismaName || 'Çalışma Kağıdı');
-  H('zkitap-meta').textContent = zkQuestions.filter(q=>q.type!=='section').length + ' soru';
-  klbToast('✅ ' + zkQuestions.length + ' soru alındı', 'success');
-}
-
-function zkClearAll(){
-  if(!zkQuestions.length) return;
-  if(!confirm('Tüm Z-Kitap soruları silinsin mi?')) return;
-  zkQuestions = [];
-  zkRenderCards();
-  H('zkitap-title').textContent = 'Z-Kitap';
-  H('zkitap-meta').textContent = 'Dosya yükleyerek başlayın';
-}
-
-// ==== PDF YÜKLEME ====
+// ==== PDF YÜKLEME (çoklu) ====
 function zkLoadPDF(){
   const input = document.createElement('input');
   input.type = 'file';
   input.accept = '.pdf';
+  input.multiple = true;
   input.onchange = async function(e){
-    const file = e.target.files[0];
-    if(!file) return;
-    try {
-      const buf = await file.arrayBuffer();
-      zkPdfDoc = await pdfjsLib.getDocument({data: buf}).promise;
-      zkPdfTotalPages = zkPdfDoc.numPages;
-      zkPdfPage = 1;
-      zkPdfCrops = [];
-      H('zk-pdf-crop').style.display = 'flex';
-      document.body.style.overflow = 'hidden';
-      zkPdfRenderPage();
-      zkPdfUpdateInfo();
-      klbToast('📄 PDF açıldı: ' + zkPdfTotalPages + ' sayfa', 'success');
-    } catch(err){
-      klbToast('❌ PDF açılamadı: ' + err.message, 'error');
+    const files = Array.from(e.target.files);
+    if(!files.length) return;
+    for(const file of files){
+      try {
+        const buf = await file.arrayBuffer();
+        const doc = await pdfjsLib.getDocument({data:buf}).promise;
+        zkPdfDocs.push({doc, name:file.name.replace(/\.pdf$/i,''), totalPages:doc.numPages});
+      } catch(err){ klbToast('❌ '+file.name+': '+err.message,'error'); }
     }
+    if(!zkPdfDocs.length) return;
+    zkPdfActiveDoc = zkPdfDocs.length - files.length;
+    zkPdfPage = 1;
+    zkPdfTotalPages = zkPdfDocs[zkPdfActiveDoc].totalPages;
+    H('zk-pdf-crop').style.display = 'flex';
+    document.body.style.overflow = 'hidden';
+    zkPdfRenderTabs();
+    zkPdfRenderPage();
+    zkPdfUpdateInfo();
+    klbToast('📄 '+files.length+' PDF açıldı','success');
   };
   input.click();
 }
 
+function zkPdfAddMore(){
+  const input = document.createElement('input');
+  input.type = 'file';
+  input.accept = '.pdf';
+  input.multiple = true;
+  input.onchange = async function(e){
+    const files = Array.from(e.target.files);
+    for(const file of files){
+      try {
+        const buf = await file.arrayBuffer();
+        const doc = await pdfjsLib.getDocument({data:buf}).promise;
+        zkPdfDocs.push({doc, name:file.name.replace(/\.pdf$/i,''), totalPages:doc.numPages});
+      } catch(err){ klbToast('❌ '+file.name,'error'); }
+    }
+    zkPdfRenderTabs();
+    klbToast('📄 '+files.length+' PDF eklendi','success');
+  };
+  input.click();
+}
+
+function zkPdfSwitchDoc(idx){
+  if(idx<0||idx>=zkPdfDocs.length) return;
+  zkPdfActiveDoc = idx;
+  zkPdfPage = 1;
+  zkPdfTotalPages = zkPdfDocs[idx].totalPages;
+  zkPdfRenderTabs();
+  zkPdfRenderPage();
+  zkPdfUpdateInfo();
+}
+
+function zkPdfRemoveDoc(idx){
+  zkPdfDocs.splice(idx,1);
+  zkPdfCrops = zkPdfCrops.filter(c=>c.docIdx!==idx).map(c=>({...c, docIdx:c.docIdx>idx?c.docIdx-1:c.docIdx}));
+  if(!zkPdfDocs.length){ zkPdfCropClose(); return; }
+  if(zkPdfActiveDoc>=zkPdfDocs.length) zkPdfActiveDoc=zkPdfDocs.length-1;
+  zkPdfTotalPages = zkPdfDocs[zkPdfActiveDoc].totalPages;
+  zkPdfPage = 1;
+  zkPdfRenderTabs(); zkPdfRenderPage(); zkPdfUpdateInfo(); zkPdfRenderCropPreviews();
+}
+
+function zkPdfRenderTabs(){
+  H('zk-pdf-tabs').innerHTML = zkPdfDocs.map((d,i)=>
+    '<div class="zk-pdf-tab'+(i===zkPdfActiveDoc?' active':'')+'" onclick="zkPdfSwitchDoc('+i+')">' +
+    '<span>📄 '+d.name+'</span>' +
+    '<span class="zk-tab-close" onclick="event.stopPropagation();zkPdfRemoveDoc('+i+')">✕</span></div>'
+  ).join('');
+}
+
 async function zkPdfRenderPage(){
-  if(!zkPdfDoc) return;
-  const page = await zkPdfDoc.getPage(zkPdfPage);
-  const scale = 2; // Yüksek çözünürlük
+  if(!zkPdfDocs.length) return;
+  const d = zkPdfDocs[zkPdfActiveDoc];
+  if(!d) return;
+  const page = await d.doc.getPage(zkPdfPage);
+  const scale = 2;
   const viewport = page.getViewport({scale});
   const canvas = H('zk-pdf-canvas');
   canvas.width = viewport.width;
   canvas.height = viewport.height;
   const ctx = canvas.getContext('2d');
-  await page.render({canvasContext: ctx, viewport}).promise;
-  
-  // Mevcut kesim overlay'lerini çiz
-  zkPdfDrawCropOverlays(ctx);
-}
-
-function zkPdfDrawCropOverlays(ctx){
-  const canvas = H('zk-pdf-canvas');
-  zkPdfCrops.forEach((crop, idx) => {
-    if(crop.page !== zkPdfPage) return;
-    ctx.strokeStyle = '#10b981';
-    ctx.lineWidth = 3;
-    ctx.setLineDash([6, 4]);
-    ctx.strokeRect(crop.rect.x, crop.rect.y, crop.rect.w, crop.rect.h);
+  await page.render({canvasContext:ctx, viewport}).promise;
+  zkPdfCrops.forEach((crop,idx)=>{
+    if(crop.docIdx!==zkPdfActiveDoc || crop.page!==zkPdfPage) return;
+    ctx.strokeStyle='#10b981'; ctx.lineWidth=3; ctx.setLineDash([6,4]);
+    ctx.strokeRect(crop.rect.x,crop.rect.y,crop.rect.w,crop.rect.h);
     ctx.setLineDash([]);
-    // Numara
-    ctx.fillStyle = 'rgba(16,185,129,0.85)';
-    ctx.fillRect(crop.rect.x, crop.rect.y, 28, 20);
-    ctx.fillStyle = '#fff';
-    ctx.font = 'bold 13px sans-serif';
-    ctx.fillText(String(idx+1), crop.rect.x+6, crop.rect.y+15);
+    ctx.fillStyle='rgba(16,185,129,0.85)';
+    ctx.fillRect(crop.rect.x,crop.rect.y,28,20);
+    ctx.fillStyle='#fff'; ctx.font='bold 13px sans-serif';
+    ctx.fillText(String(idx+1),crop.rect.x+6,crop.rect.y+15);
   });
 }
 
-function zkPdfPrevPage(){
-  if(zkPdfPage <= 1) return;
-  zkPdfPage--;
-  zkPdfRenderPage();
-  zkPdfUpdateInfo();
-}
-function zkPdfNextPage(){
-  if(zkPdfPage >= zkPdfTotalPages) return;
-  zkPdfPage++;
-  zkPdfRenderPage();
-  zkPdfUpdateInfo();
-}
+function zkPdfPrevPage(){ if(zkPdfPage<=1)return; zkPdfPage--; zkPdfRenderPage(); zkPdfUpdateInfo(); }
+function zkPdfNextPage(){ if(zkPdfPage>=zkPdfTotalPages)return; zkPdfPage++; zkPdfRenderPage(); zkPdfUpdateInfo(); }
 function zkPdfUpdateInfo(){
-  H('zk-pdf-page-info').textContent = 'Sayfa ' + zkPdfPage + '/' + zkPdfTotalPages;
-  H('zk-crop-count').textContent = zkPdfCrops.length + ' soru kesildi';
+  H('zk-pdf-page-info').textContent='Sayfa '+zkPdfPage+'/'+zkPdfTotalPages;
+  H('zk-crop-count').textContent=zkPdfCrops.length+' soru kesildi';
 }
 
-// PDF üzerinde fare ile dikdörtgen seçimi
+// PDF crop - canvas üzerinde dikdörtgen çizme (düzeltilmiş)
 (function(){
-  let started = false, sx=0, sy=0;
-  
-  function getPos(e, canvas){
-    const rect = canvas.getBoundingClientRect();
-    const scaleX = canvas.width / rect.width;
-    const scaleY = canvas.height / rect.height;
-    const clientX = e.touches ? e.touches[0].clientX : e.clientX;
-    const clientY = e.touches ? e.touches[0].clientY : e.clientY;
-    return {x: (clientX - rect.left) * scaleX, y: (clientY - rect.top) * scaleY};
-  }
-  
-  document.addEventListener('DOMContentLoaded', function(){
-    const wrap = document.getElementById('zk-pdf-canvas-wrap');
+  let started=false, sx=0, sy=0;
+  document.addEventListener('DOMContentLoaded',function(){
+    const wrap=document.getElementById('zk-pdf-canvas-wrap');
     if(!wrap) return;
-    
-    wrap.addEventListener('mousedown', startCrop);
-    wrap.addEventListener('touchstart', startCrop, {passive:false});
-    wrap.addEventListener('mousemove', moveCrop);
-    wrap.addEventListener('touchmove', moveCrop, {passive:false});
-    wrap.addEventListener('mouseup', endCrop);
-    wrap.addEventListener('touchend', endCrop);
-    
-    function startCrop(e){
-      const canvas = document.getElementById('zk-pdf-canvas');
-      if(!canvas || !zkPdfDoc) return;
+    wrap.addEventListener('mousedown',onDown);
+    wrap.addEventListener('touchstart',onDown,{passive:false});
+    document.addEventListener('mousemove',onMove);
+    document.addEventListener('touchmove',onMove,{passive:false});
+    document.addEventListener('mouseup',onUp);
+    document.addEventListener('touchend',onUp);
+
+    function onDown(e){
+      if(!zkPdfDocs.length) return;
+      const canvas=document.getElementById('zk-pdf-canvas');
+      if(!canvas) return;
+      const cr=canvas.getBoundingClientRect();
+      const cx=e.touches?e.touches[0].clientX:e.clientX;
+      const cy=e.touches?e.touches[0].clientY:e.clientY;
+      if(cx<cr.left||cx>cr.right||cy<cr.top||cy>cr.bottom) return;
       if(e.touches) e.preventDefault();
-      const pos = getPos(e, canvas);
-      sx = pos.x; sy = pos.y;
-      started = true;
-      const r = document.getElementById('zk-crop-rect');
-      r.style.display = 'block';
+      e.preventDefault(); // Resim sürüklemeyi engelle
+      sx=(cx-cr.left)*(canvas.width/cr.width);
+      sy=(cy-cr.top)*(canvas.height/cr.height);
+      started=true;
+      H('zk-crop-rect').style.display='block';
     }
-    
-    function moveCrop(e){
+    function onMove(e){
       if(!started) return;
       if(e.touches) e.preventDefault();
-      const canvas = document.getElementById('zk-pdf-canvas');
-      const pos = getPos(e, canvas);
-      const rect = canvas.getBoundingClientRect();
-      const scaleX = rect.width / canvas.width;
-      const scaleY = rect.height / canvas.height;
-      const r = document.getElementById('zk-crop-rect');
-      const cx = Math.min(sx, pos.x), cy = Math.min(sy, pos.y);
-      const cw = Math.abs(pos.x - sx), ch = Math.abs(pos.y - sy);
-      r.style.left = (canvas.offsetLeft + cx * scaleX) + 'px';
-      r.style.top = (canvas.offsetTop + cy * scaleY) + 'px';
-      r.style.width = (cw * scaleX) + 'px';
-      r.style.height = (ch * scaleY) + 'px';
+      e.preventDefault();
+      const canvas=document.getElementById('zk-pdf-canvas');
+      if(!canvas) return;
+      const cr=canvas.getBoundingClientRect();
+      const wrapR=H('zk-pdf-canvas-wrap').getBoundingClientRect();
+      const scD=cr.width/canvas.width;
+      const cx=e.touches?e.touches[0].clientX:e.clientX;
+      const cy=e.touches?e.touches[0].clientY:e.clientY;
+      const posX=(cx-cr.left)*(canvas.width/cr.width);
+      const posY=(cy-cr.top)*(canvas.height/cr.height);
+      const minX=Math.min(sx,posX), minY=Math.min(sy,posY);
+      const w=Math.abs(posX-sx), h=Math.abs(posY-sy);
+      const r=H('zk-crop-rect');
+      r.style.left=(cr.left-wrapR.left+H('zk-pdf-canvas-wrap').scrollLeft+minX*scD)+'px';
+      r.style.top=(cr.top-wrapR.top+H('zk-pdf-canvas-wrap').scrollTop+minY*scD)+'px';
+      r.style.width=(w*scD)+'px';
+      r.style.height=(h*scD)+'px';
     }
-    
-    function endCrop(e){
+    function onUp(e){
       if(!started) return;
-      started = false;
-      const canvas = document.getElementById('zk-pdf-canvas');
-      const r = document.getElementById('zk-crop-rect');
-      r.style.display = 'none';
-      
-      const pos = getPos(e.changedTouches ? e.changedTouches[0] : e, canvas);
-      const x = Math.min(sx, pos.x), y = Math.min(sy, pos.y);
-      const w = Math.abs(pos.x - sx), h = Math.abs(pos.y - sy);
-      
-      // Minimum boyut kontrolü
-      if(w < 30 || h < 30) return;
-      
-      // Crop alanını kes
-      const cropCanvas = document.createElement('canvas');
-      cropCanvas.width = w;
-      cropCanvas.height = h;
-      const cropCtx = cropCanvas.getContext('2d');
-      cropCtx.drawImage(canvas, x, y, w, h, 0, 0, w, h);
-      const dataUrl = cropCanvas.toDataURL('image/png');
-      
-      zkPdfCrops.push({dataUrl, page: zkPdfPage, rect:{x,y,w,h}});
-      zkPdfUpdateInfo();
-      zkPdfRenderPage(); // Overlay'leri güncelle
-      
-      klbToast('✂️ Soru ' + zkPdfCrops.length + ' kesildi', 'success');
+      started=false;
+      H('zk-crop-rect').style.display='none';
+      const canvas=document.getElementById('zk-pdf-canvas');
+      if(!canvas) return;
+      const cr=canvas.getBoundingClientRect();
+      const ex=e.changedTouches?e.changedTouches[0].clientX:e.clientX;
+      const ey=e.changedTouches?e.changedTouches[0].clientY:e.clientY;
+      const posX=(ex-cr.left)*(canvas.width/cr.width);
+      const posY=(ey-cr.top)*(canvas.height/cr.height);
+      const x=Math.min(sx,posX), y=Math.min(sy,posY);
+      const w=Math.abs(posX-sx), h=Math.abs(posY-sy);
+      if(w<30||h<30) return;
+      const cc=document.createElement('canvas'); cc.width=w; cc.height=h;
+      cc.getContext('2d').drawImage(canvas,x,y,w,h,0,0,w,h);
+      zkPdfCrops.push({dataUrl:cc.toDataURL('image/png'), page:zkPdfPage, docIdx:zkPdfActiveDoc, rect:{x,y,w,h}});
+      zkPdfUpdateInfo(); zkPdfRenderPage(); zkPdfRenderCropPreviews();
+      klbToast('✂️ Soru '+zkPdfCrops.length+' kesildi','success');
     }
   });
 })();
 
+function zkPdfRenderCropPreviews(){
+  const wrap=H('zk-crop-previews');
+  if(!wrap) return;
+  wrap.innerHTML=zkPdfCrops.map((c,i)=>
+    '<div class="zk-crop-preview" onclick="zkPdfGoToCrop('+i+')">' +
+    '<span class="zk-crop-num">'+(i+1)+'</span>' +
+    '<span class="zk-crop-del" onclick="event.stopPropagation();zkPdfDeleteCrop('+i+')">✕</span>' +
+    '<img src="'+c.dataUrl+'"></div>'
+  ).join('');
+}
+function zkPdfDeleteCrop(idx){ zkPdfCrops.splice(idx,1); zkPdfUpdateInfo(); zkPdfRenderPage(); zkPdfRenderCropPreviews(); }
+function zkPdfGoToCrop(idx){
+  const c=zkPdfCrops[idx]; if(!c) return;
+  if(c.docIdx!==zkPdfActiveDoc) zkPdfSwitchDoc(c.docIdx);
+  if(c.page!==zkPdfPage){ zkPdfPage=c.page; zkPdfRenderPage(); zkPdfUpdateInfo(); }
+}
 function zkPdfUndoCrop(){
   if(!zkPdfCrops.length) return;
-  zkPdfCrops.pop();
-  zkPdfUpdateInfo();
-  zkPdfRenderPage();
-  klbToast('↩️ Son kesim geri alındı', 'success');
+  zkPdfCrops.pop(); zkPdfUpdateInfo(); zkPdfRenderPage(); zkPdfRenderCropPreviews();
+  klbToast('↩️ Geri alındı','success');
 }
 
 function zkPdfCropDone(){
-  if(!zkPdfCrops.length){
-    klbToast('⚠️ Henüz soru kesilmedi!','error'); return;
-  }
-  // Crop'ları Z-Kitap sorularına dönüştür
-  const newQs = zkPdfCrops.map((crop, idx) => ({
-    id: 'zkpdf_' + Date.now() + '_' + idx,
-    _zkType: 'img',
-    type: 'open',
-    _imgSrc: crop.dataUrl,
-    text: '',
-    options: {},
-    images: []
+  if(!zkPdfCrops.length){ klbToast('⚠️ Henüz soru kesilmedi!','error'); return; }
+  const newQs=zkPdfCrops.map((crop,idx)=>({
+    id:'zkpdf_'+Date.now()+'_'+idx, _zkType:'img', type:'open',
+    _imgSrc:crop.dataUrl, text:'', options:{}, images:[]
   }));
-  zkQuestions = zkQuestions.concat(newQs);
+  zkQuestions=zkQuestions.concat(newQs);
   zkRenderCards();
-  H('zkitap-meta').textContent = zkQuestions.length + ' soru';
+  H('zkitap-meta').textContent=zkQuestions.length+' soru';
   zkPdfCropClose();
-  klbToast('✅ ' + newQs.length + ' soru Z-Kitap\'a eklendi!', 'success');
+  klbToast('✅ '+newQs.length+' soru Z-Kitap\'a eklendi!','success');
 }
 
 function zkPdfCropClose(){
-  H('zk-pdf-crop').style.display = 'none';
-  document.body.style.overflow = '';
-  zkPdfDoc = null;
+  H('zk-pdf-crop').style.display='none';
+  document.body.style.overflow='';
+  zkPdfDocs=[]; zkPdfActiveDoc=0;
 }
+
+// ==== ÖNİZLEME & YAZDIRMA (doPrintCalisma referans) ====
+function zkPdfPreview(){
+  if(!zkPdfCrops.length){ klbToast('⚠️ Henüz soru kesilmedi!','error'); return; }
+  const s=db.settings||{};
+  const marginMap={dar:'6mm 8mm',normal:'12mm 15mm',genis:'18mm 22mm'};
+  const padding=marginMap[s.kenarBoslugu||'normal'];
+  const filigran=s.filigran||'';
+  const wmOpacity=(s.filigranOpaklik||8)/100;
+  const wmHtml=filigran?'<div class="p-watermark" style="opacity:'+wmOpacity+'">'+filigran+'</div>':'';
+  let qsHtml='';
+  zkPdfCrops.forEach((crop,idx)=>{
+    qsHtml+='<div class="pq" style="margin-bottom:14pt;page-break-inside:avoid">';
+    qsHtml+='<div style="font-weight:700;font-size:11pt;margin-bottom:6pt">'+(idx+1)+'.</div>';
+    qsHtml+='<div><img src="'+crop.dataUrl+'" style="max-width:100%;height:auto;border:1px solid #ddd"></div>';
+    qsHtml+='</div>';
+  });
+  const pageHtml='<div class="ppage" style="padding:'+padding+'">'+wmHtml
+    +'<div style="text-align:center;font-size:14pt;font-weight:700;margin-bottom:4pt">'+(s.okulAdi||'')+'</div>'
+    +'<div style="text-align:center;font-size:12pt;font-weight:600;margin-bottom:8pt;color:#3b82f6">Z-Kitap Çalışma Sayfası</div>'
+    +'<div style="text-align:center;font-size:10pt;color:#666;margin-bottom:12pt">'+(s.dersAdi||'')+' • '+new Date().toLocaleDateString('tr-TR')+'</div>'
+    +'<hr style="border:none;border-top:2px solid #ddd;margin:12pt 0">'
+    +'<div class="pq-container">'+qsHtml+'</div></div>';
+  H('zk-pdf-preview-content').innerHTML='<div style="background:#fff;width:min(800px,96vw);box-shadow:0 8px 48px rgba(0,0,0,.8);border-radius:4px;overflow:auto">'+pageHtml+'</div>';
+  H('zk-pdf-preview').style.display='flex';
+}
+function zkPdfPreviewClose(){ H('zk-pdf-preview').style.display='none'; }
+function zkPdfPrint(){
+  const content=H('zk-pdf-preview-content').querySelector('.ppage');
+  if(!content) return;
+  H('print-output').innerHTML=content.outerHTML;
+  zkPdfPreviewClose(); zkPdfCropClose();
+  setTimeout(()=>window.print(),300);
+}
+
 
 // ==== KART RENDER ====
 function zkRenderCards(){
