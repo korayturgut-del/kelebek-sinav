@@ -8433,7 +8433,7 @@ function saveCalismaToFile(){
 function loadCalismaFromFile(){
   const input=document.createElement('input');
   input.type='file';
-  input.accept='.json,.kdb,.db';
+  input.accept='.klb,.json,.kdb,.db,.dbc';
   
   input.onchange=function(e){
     const file=e.target.files[0];
@@ -8441,8 +8441,8 @@ function loadCalismaFromFile(){
     
     var ext=file.name.split('.').pop().toLowerCase();
     
+    // ── Eski ZIP format (.db) ──────────────────────────────────
     if(ext==='db'){
-      // ZIP format — harici .db dosyası
       var reader2=new FileReader();
       reader2.onload=function(ev2){
         try{
@@ -8471,48 +8471,67 @@ function loadCalismaFromFile(){
           currentCalismaName=file.name.replace(/\.db$/i,'');
           calismaCnt=converted.length;
           save();renderQuestionsCalisma();updateCalismaTitle();
-          alert('✅ .db dosyasından yüklendi!\n'+converted.length+' soru');
+          alert('✅ .db dosyasından yüklendi!\n'+converted.length+' soru aktarıldı.');
         }catch(err){alert('❌ .db dosyası okunamadı!\n'+err.message);}
       };
       reader2.readAsArrayBuffer(file);
       return;
     }
+
+    // ── Yeni KLB format (.klb) ─────────────────────────────────
+    if(ext==='klb'){
+      var rKlb=new FileReader();
+      rKlb.onload=function(evKlb){
+        try{
+          var raw=evKlb.target.result;
+          var MAGIC='KLBF\x01\x00KorayKelebek2024\n';
+          if(!raw.startsWith(MAGIC))
+            throw new Error('Bu geçerli bir Kelebek dosyası değil.\nSadece Koray Kelebek Sınav Editörü açabilir.');
+          var b64=raw.slice(MAGIC.length);
+          var data=JSON.parse(decodeURIComponent(escape(atob(b64))));
+          if(data.type!=='worksheet'&&data.type!=='calisma'&&data.type!=='exam')
+            throw new Error('Bu dosya bir çalışma sayfası değil! (Tür: '+data.type+')');
+          if(db.calismaQuestions.length>0){
+            if(!confirm('Mevcut sorular silinecek. Dosyadan yüklensin mi?'))return;
+          }
+          db.calismaQuestions=data.calismaQuestions||data.questions||[];
+          currentCalismaName=data.currentCalismaName||data.name||file.name.replace(/\.klb$/i,'');
+          if(data.settings) Object.assign(db.settings,data.settings);
+          calismaCnt=0;
+          db.calismaQuestions.forEach(function(q){
+            var n=parseInt((q.id||'').replace('c_',''))||0;
+            if(n>=calismaCnt)calismaCnt=n+1;
+          });
+          save();loadSettings();renderQuestionsCalisma();updateCalismaTitle();
+          alert('✅ Yüklendi: '+file.name+'\n'+db.calismaQuestions.length+' soru');
+        }catch(err){alert('❌ '+err.message);}
+      };
+      rKlb.readAsText(file);
+      return;
+    }
     
+    // ── Eski JSON formatları (.json, .kdb, .dbc) ───────────────
     const reader=new FileReader();
     reader.onload=function(event){
       try{
         const data=JSON.parse(event.target.result);
-        
-        // Hem calisma hem kelebek-exam-group hem exam formatını kabul et
-        if(data.type!=='calisma'&&data.type!=='kelebek-exam-group'&&data.type!=='exam'){
-          alert('⚠️ Bu geçerli bir dosya değil!');
+        if(data.type!=='calisma'&&data.type!=='kelebek-exam-group'&&data.type!=='exam'&&data.type!=='worksheet'){
+          alert('⚠️ Bu geçerli bir çalışma dosyası değil!');
           return;
         }
-        
         if(db.calismaQuestions.length>0){
           if(!confirm('Mevcut sorular silinecek. Dosyadan yüklensin mi?'))return;
         }
-        
-        db.calismaQuestions=data.questions||[];
-        currentCalismaName=data.name||'Yüklenen Çalışma';
-        
-        if(data.settings){
-          Object.assign(db.settings,data.settings);
-        }
-        
+        db.calismaQuestions=data.calismaQuestions||data.questions||[];
+        currentCalismaName=data.currentCalismaName||data.name||'Yüklenen Çalışma';
+        if(data.settings) Object.assign(db.settings,data.settings);
         calismaCnt=0;
         db.calismaQuestions.forEach(function(q){
           var n=parseInt((q.id||'').replace('c_',''))||0;
           if(n>=calismaCnt)calismaCnt=n+1;
         });
-        
-        save();
-        loadSettings();
-        renderQuestionsCalisma();
-        updateCalismaTitle();
-        
-        alert('✅ Dosyadan yüklendi: '+(data.name||file.name)+'\n'+db.calismaQuestions.length+' soru');
-        
+        save();loadSettings();renderQuestionsCalisma();updateCalismaTitle();
+        alert('✅ Yüklendi: '+(data.name||file.name)+'\n'+db.calismaQuestions.length+' soru');
       }catch(err){
         alert('❌ Dosya okunamadı!\n'+err.message);
       }
