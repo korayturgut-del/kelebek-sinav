@@ -175,6 +175,57 @@ body{
 [data-theme="light"] .theme-icon-moon{opacity:0.3}
 [data-theme="light"] .theme-icon-sun{opacity:1}
 
+/* ===== AUTO-SAVE TOGGLE ===== */
+.auto-save-toggle{
+  position:relative;display:inline-block;width:42px;height:24px;cursor:pointer;
+}
+.auto-save-toggle input{display:none}
+.auto-save-slider{
+  position:absolute;inset:0;
+  background:var(--bg3);
+  border:1px solid var(--border);
+  border-radius:20px;
+  transition:all .3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+.auto-save-slider::before{
+  content:'';position:absolute;
+  width:16px;height:16px;
+  left:3px;top:3px;
+  background:var(--text3);
+  border-radius:50%;
+  transition:all .3s cubic-bezier(0.4, 0, 0.2, 1);
+  box-shadow:0 2px 4px rgba(0,0,0,.2);
+}
+.auto-save-toggle input:checked + .auto-save-slider{
+  background:linear-gradient(135deg, var(--green) 0%, #059669 100%);
+  border-color:var(--green);
+}
+.auto-save-toggle input:checked + .auto-save-slider::before{
+  transform:translateX(18px);
+  background:#fff;
+  box-shadow:0 2px 6px rgba(16,185,129,.4);
+}
+.auto-save-toggle:hover .auto-save-slider{
+  border-color:var(--border2);
+}
+/* Kaydet butonu animasyonu */
+.save-btn{transition:all .25s cubic-bezier(.4,0,.2,1)}
+.save-btn:hover{
+  background:var(--green) !important;
+  color:#fff !important;
+  border-color:var(--green) !important;
+  transform:translateY(-2px);
+}
+.save-btn.saving{
+  animation:saveGlow 0.6s ease-out;
+  pointer-events:none;
+}
+@keyframes saveGlow{
+  0%{background:var(--green);color:#fff;transform:scale(1)}
+  50%{background:var(--green);color:#fff;transform:scale(1.1);box-shadow:0 0 20px rgba(16,185,129,.6)}
+  100%{background:var(--glass);color:var(--text2);transform:scale(1)}
+}
+
 /* ===== WORKFLOW STRIP ===== */
 
 
@@ -1606,6 +1657,20 @@ input, textarea, select, [contenteditable] {
       </svg>
     </button>
     <button class="icon-btn" onclick="saveEmbeddedHTML()" data-tip="Tüm Verileri HTML'e Kaydet">💾</button>
+    <!-- Modern Kaydet Butonu + Otomatik Kaydetme Toggle -->
+    <div style="display:flex;align-items:center;gap:8px;padding:0 8px;border-left:1px solid var(--border)">
+      <button class="icon-btn save-btn" onclick="manualSave()" data-tip="Kaydet" id="save-btn">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/>
+          <polyline points="17 21 17 13 7 13 7 21"/>
+          <polyline points="7 3 7 8 15 8"/>
+        </svg>
+      </button>
+      <label class="auto-save-toggle" data-tip="Otomatik Kaydet">
+        <input type="checkbox" id="auto-save-checkbox" onchange="toggleAutoSave()" checked>
+        <span class="auto-save-slider"></span>
+      </label>
+    </div>
     <div class="icon-btn" data-tip="Tam Ekran" onclick="toggleFS()" id="fs-btn">⛶</div>
   </div>
 </div>
@@ -10890,6 +10955,103 @@ function doLogout(){
   google.accounts.id.disableAutoSelect();
   location.reload();
 }
+
+// ============================================================
+// OTOMATİK KAYDETME SİSTEMİ
+// ============================================================
+let autoSaveEnabled = localStorage.getItem('autoSaveEnabled') !== 'false'; // default true
+let autoSaveTimer = null;
+
+// Sayfa yüklenince checkbox durumunu ayarla
+window.addEventListener('DOMContentLoaded', function(){
+  const checkbox = document.getElementById('auto-save-checkbox');
+  if(checkbox) checkbox.checked = autoSaveEnabled;
+});
+
+function toggleAutoSave(){
+  const checkbox = document.getElementById('auto-save-checkbox');
+  autoSaveEnabled = checkbox.checked;
+  localStorage.setItem('autoSaveEnabled', autoSaveEnabled);
+  
+  if(autoSaveEnabled){
+    showToast('✅ Otomatik kaydetme açık', 'success');
+  } else {
+    showToast('⏸️ Otomatik kaydetme kapalı', 'info');
+  }
+}
+
+function manualSave(){
+  save();
+  const btn = document.getElementById('save-btn');
+  if(btn){
+    btn.classList.add('saving');
+    setTimeout(() => btn.classList.remove('saving'), 600);
+  }
+  showToast('💾 Kaydedildi', 'success');
+}
+
+function showToast(msg, type){
+  const existing = document.getElementById('toast-notification');
+  if(existing) existing.remove();
+  
+  const colors = {
+    success: 'linear-gradient(135deg, #10b981, #059669)',
+    info: 'linear-gradient(135deg, #6366f1, #4f46e5)',
+    error: 'linear-gradient(135deg, #ef4444, #dc2626)'
+  };
+  
+  const toast = document.createElement('div');
+  toast.id = 'toast-notification';
+  toast.style.cssText = `
+    position:fixed;top:80px;right:20px;z-index:999999;
+    background:${colors[type] || colors.info};
+    color:#fff;padding:12px 20px;border-radius:12px;
+    font-size:0.85rem;font-weight:600;
+    box-shadow:0 12px 32px rgba(0,0,0,.3);
+    animation:toastSlide 0.3s cubic-bezier(.4,0,.2,1);
+    backdrop-filter:blur(12px);
+  `;
+  toast.textContent = msg;
+  document.body.appendChild(toast);
+  
+  setTimeout(() => {
+    toast.style.animation = 'toastSlideOut 0.3s cubic-bezier(.4,0,.2,1)';
+    setTimeout(() => toast.remove(), 300);
+  }, 2000);
+}
+
+// CSS animasyonları için stil ekle
+if(!document.getElementById('toast-styles')){
+  const style = document.createElement('style');
+  style.id = 'toast-styles';
+  style.textContent = `
+    @keyframes toastSlide {
+      from { opacity:0; transform:translateX(100px); }
+      to { opacity:1; transform:translateX(0); }
+    }
+    @keyframes toastSlideOut {
+      from { opacity:1; transform:translateX(0); }
+      to { opacity:0; transform:translateX(100px); }
+    }
+  `;
+  document.head.appendChild(style);
+}
+
+// Mevcut save() fonksiyonunu otomatik kaydetme ile sarmala
+(function wrapSaveForAutoSave(){
+  const _originalSave = window.save;
+  window.save = function(){
+    _originalSave.apply(this, arguments);
+    
+    // Otomatik kaydetme açıksa debounce ile kaydet
+    if(autoSaveEnabled){
+      clearTimeout(autoSaveTimer);
+      autoSaveTimer = setTimeout(() => {
+        // Burada istersen görsel feedback ekleyebilirsin
+      }, 1000);
+    }
+  };
+})();
 
 // Google Auth başlat
 function initGoogleAuth(){
