@@ -321,14 +321,33 @@ label.lbl{font-size:.78rem;font-weight:600;color:var(--text2);display:block;marg
 .qcard-img-wrap img{pointer-events:none;width:100%;height:100%;object-fit:contain;display:block}
 .qcard-preview-text{font-size:.78rem;color:var(--text2);padding:8px 12px 6px;line-height:1.45;overflow-y:auto;flex:1}
 .qcard-pts{font-size:.75rem;font-weight:700;color:var(--text3);flex-shrink:0}
-.qcard-acts{display:flex;gap:4px;padding:0 10px 10px;flex-shrink:0}
+.qcard-acts{display:flex;gap:4px;padding:0 10px 10px;flex-shrink:0;flex-wrap:wrap}
 .qcard-act{
-  padding:4px 10px;border-radius:6px;background:transparent;
-  border:1px solid transparent;color:var(--text3);cursor:pointer;
-  font-size:.72rem;transition:all .2s;
+  padding:6px 11px;border-radius:8px;background:var(--bg2);
+  border:1px solid var(--border);color:var(--text2);cursor:pointer;
+  font-size:.72rem;font-weight:600;transition:all .22s cubic-bezier(.4,0,.2,1);
+  display:inline-flex;align-items:center;gap:4px;
+  box-shadow:0 1px 3px rgba(0,0,0,.08);
 }
-.qcard-act:hover{background:var(--glass);border-color:var(--border);color:var(--text2)}
-.qcard-act.del:hover{color:var(--red);border-color:rgba(239,68,68,.3)}
+.qcard-act:hover{
+  background:var(--glass);
+  border-color:var(--border2);
+  color:var(--text);
+  transform:translateY(-1px);
+  box-shadow:0 3px 8px rgba(0,0,0,.12);
+}
+.qcard-act:active{transform:translateY(0);box-shadow:0 1px 3px rgba(0,0,0,.08)}
+.qcard-act.del{background:rgba(239,68,68,.08);border-color:rgba(239,68,68,.2);color:#ef4444}
+.qcard-act.del:hover{
+  background:rgba(239,68,68,.15);
+  border-color:rgba(239,68,68,.4);
+  color:#dc2626;
+}
+.qcard-act.note-btn{background:rgba(251,191,36,.1);border-color:rgba(251,191,36,.3);color:#f59e0b}
+.qcard-act.note-btn:hover{background:rgba(251,191,36,.2);border-color:rgba(251,191,36,.5);color:#d97706}
+.qcard-act.note-btn.active{background:linear-gradient(135deg,#fbbf24,#f59e0b);border-color:#f59e0b;color:#fff;font-weight:700}
+.qcard.is-note{border-left:4px solid #fbbf24;background:linear-gradient(135deg,rgba(251,191,36,.04),rgba(245,158,11,.02))}
+.qcard.is-note .qcard-type{background:linear-gradient(135deg,#fbbf24,#f59e0b);color:#fff}
 .opts-bar{display:flex;gap:5px;padding:0 14px 10px;flex-shrink:0}
 .opt-dot{
   width:24px;height:24px;border-radius:50%;
@@ -3335,6 +3354,12 @@ function toggleFullwidth(id){
   q.fullwidth=!q.fullwidth;
   save();renderQuestions();
 }
+function toggleQNote(id){
+  const q=db.questions.find(q=>q.id===id);
+  if(!q)return;
+  q.isNote=!q.isNote;
+  save();renderQuestions();
+}
 function moveQ(id,dir){
   const i=db.questions.findIndex(q=>q.id===id);
   const j=i+dir;if(j<0||j>=db.questions.length)return;
@@ -3357,9 +3382,15 @@ function renderQuestions(){
           <span style="font-weight:700;color:var(--amber);flex:1">${q.title||''}</span>
         </div>
         <div class="qcard-acts">
-          <button class="qcard-act" onclick="event.stopPropagation();moveQ('${q.id}',-1)" data-tip="Yukarı">↑</button>
-          <button class="qcard-act" onclick="event.stopPropagation();moveQ('${q.id}',1)" data-tip="Aşağı">↓</button>
-          <button class="qcard-act del" onclick="event.stopPropagation();delQ('${q.id}')" data-tip="Sil">🗑</button>
+          <button class="qcard-act" onclick="event.stopPropagation();moveQ('${q.id}',-1)" data-tip="Yukarı taşı">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M18 15l-6-6-6 6"/></svg>
+          </button>
+          <button class="qcard-act" onclick="event.stopPropagation();moveQ('${q.id}',1)" data-tip="Aşağı taşı">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M6 9l6 6 6-6"/></svg>
+          </button>
+          <button class="qcard-act del" onclick="event.stopPropagation();delQ('${q.id}')" data-tip="Sil">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M3 6h18M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2"/></svg>
+          </button>
         </div>
       </div>`;
     }
@@ -3386,7 +3417,7 @@ function renderQuestions(){
     // Resim önizleme HTML'i
     const imgPreview=firstImg?`<div class="qcard-img-wrap"><img src="${firstImg}"></div>`:'';
     
-    return `<div class="qcard${_activeQId===q.id?' active':''}${q.fullwidth?' fullwidth':''}" id="qcard-${q.id}" onclick="openQEdit('${q.id}')">
+    return `<div class="qcard${_activeQId===q.id?' active':''}${q.fullwidth?' fullwidth':''}${q.isNote?' is-note':''}" id="qcard-${q.id}" onclick="openQEdit('${q.id}')">
       <div class="qcard-head">
         <span class="qcard-num">${qNum}.</span>
         <span class="qcard-type ${tClass[q.type]||'mc'}">${tLabel[q.type]||''}</span>
@@ -3403,14 +3434,28 @@ function renderQuestions(){
       </div>
       ${opts}
       <div class="qcard-acts">
-        <button class="qcard-act" onclick="event.stopPropagation();moveQ('${q.id}',-1)" data-tip="Yukarı">↑</button>
-        <button class="qcard-act" onclick="event.stopPropagation();moveQ('${q.id}',1)" data-tip="Aşağı">↓</button>
-        <button class="qcard-act" onclick="event.stopPropagation();toggleQType('${q.id}')" data-tip="Tip değiştir" style="font-size:.68rem">${q.type==='mc'?'→AÇ':'→ÇS'}</button>
-        <button class="qcard-act" onclick="event.stopPropagation();toggleFullwidth('${q.id}')" data-tip="Tam genişlik">${q.fullwidth?'◧':'↔'}</button>
-        <label class="qcard-act" onclick="event.stopPropagation()" data-tip="Resim Ekle">📷
+        <button class="qcard-act" onclick="event.stopPropagation();moveQ('${q.id}',-1)" data-tip="Yukarı taşı">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M18 15l-6-6-6 6"/></svg>
+        </button>
+        <button class="qcard-act" onclick="event.stopPropagation();moveQ('${q.id}',1)" data-tip="Aşağı taşı">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M6 9l6 6 6-6"/></svg>
+        </button>
+        <button class="qcard-act" onclick="event.stopPropagation();toggleQType('${q.id}')" data-tip="Tür değiştir">
+          ${q.type==='mc'?'<span style="font-size:.7rem">ÇS→AÇ</span>':'<span style="font-size:.7rem">AÇ→ÇS</span>'}
+        </button>
+        <button class="qcard-act note-btn ${q.isNote?'active':''}" onclick="event.stopPropagation();toggleQNote('${q.id}')" data-tip="${q.isNote?'Soru olarak işaretle':'Açıklama olarak işaretle'}">
+          ${q.isNote?'<span>✓ Açıklama</span>':'<span>📝 Açıklama</span>'}
+        </button>
+        <button class="qcard-act" onclick="event.stopPropagation();toggleFullwidth('${q.id}')" data-tip="Tam genişlik">
+          ${q.fullwidth?'<span style="font-size:.8rem">◧</span>':'<span style="font-size:.8rem">↔</span>'}
+        </button>
+        <label class="qcard-act" onclick="event.stopPropagation()" data-tip="Resim ekle">
+          <span style="font-size:.85rem">📷</span>
           <input type="file" accept="image/*" style="display:none" onchange="qAddImgFile(this,'${q.id}')">
         </label>
-        <button class="qcard-act del" onclick="event.stopPropagation();delQ('${q.id}')" data-tip="Sil">🗑</button>
+        <button class="qcard-act del" onclick="event.stopPropagation();delQ('${q.id}')" data-tip="Sil">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M3 6h18M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2"/></svg>
+        </button>
       </div>
     </div>`;
   }).join('');
@@ -6592,6 +6637,12 @@ function toggleFullwidthCalisma(id){
   q.fullwidth=!q.fullwidth;
   save();renderQuestionsCalisma();
 }
+function toggleQNoteCalisma(id){
+  const q=db.calismaQuestions.find(q=>q.id===id);
+  if(!q)return;
+  q.isNote=!q.isNote;
+  save();renderQuestionsCalisma();
+}
 function moveQCalisma(id,dir){
   const i=db.calismaQuestions.findIndex(q=>q.id===id);
   const j=i+dir;if(j<0||j>=db.calismaQuestions.length)return;
@@ -6631,7 +6682,7 @@ function renderQuestionsCalisma(){
     // Resim önizleme HTML'i
     const imgPreview=firstImg?`<div class="qcard-img-wrap"><img src="${firstImg}"></div>`:'';
     
-    return `<div class="qcard ${_activeQId===q.id?'active':''}${q.fullwidth?' fullwidth':''}" onclick="openQEditCalisma('${q.id}')">
+    return `<div class="qcard ${_activeQId===q.id?'active':''}${q.fullwidth?' fullwidth':''}${q.isNote?' is-note':''}" onclick="openQEditCalisma('${q.id}')">
       <div class="qcard-head">
         <div class="qcard-num">${qNum}.</div>
         <div class="qcard-type ${typeClass}">${typeLabel}</div>
@@ -6647,11 +6698,24 @@ function renderQuestionsCalisma(){
       </div>
       ${opts}
       <div class="qcard-acts">
-        <button class="qcard-act" onclick="event.stopPropagation();moveQCalisma('${q.id}',-1)" title="Yukarı">↑</button>
-        <button class="qcard-act" onclick="event.stopPropagation();moveQCalisma('${q.id}',1)" title="Aşağı">↓</button>
-        <button class="qcard-act" onclick="event.stopPropagation();toggleQTypeCalisma('${q.id}')" title="Tip değiştir" style="font-size:.68rem">${q.type==='mc'?'→AÇ':q.type==='open'?'→ÇS':'→ÇS'}</button>
-        <button class="qcard-act" onclick="event.stopPropagation();toggleFullwidthCalisma('${q.id}')" title="Tam genişlik">${q.fullwidth?'◧':'↔'}</button>
-        <button class="qcard-act del" onclick="event.stopPropagation();delQCalisma('${q.id}')" title="Sil">✕</button>
+        <button class="qcard-act" onclick="event.stopPropagation();moveQCalisma('${q.id}',-1)" data-tip="Yukarı taşı">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M18 15l-6-6-6 6"/></svg>
+        </button>
+        <button class="qcard-act" onclick="event.stopPropagation();moveQCalisma('${q.id}',1)" data-tip="Aşağı taşı">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M6 9l6 6 6-6"/></svg>
+        </button>
+        <button class="qcard-act" onclick="event.stopPropagation();toggleQTypeCalisma('${q.id}')" data-tip="Tür değiştir">
+          ${q.type==='mc'?'<span style="font-size:.7rem">ÇS→AÇ</span>':'<span style="font-size:.7rem">AÇ→ÇS</span>'}
+        </button>
+        <button class="qcard-act note-btn ${q.isNote?'active':''}" onclick="event.stopPropagation();toggleQNoteCalisma('${q.id}')" data-tip="${q.isNote?'Soru olarak işaretle':'Açıklama olarak işaretle'}">
+          ${q.isNote?'<span>✓ Açıklama</span>':'<span>📝 Açıklama</span>'}
+        </button>
+        <button class="qcard-act" onclick="event.stopPropagation();toggleFullwidthCalisma('${q.id}')" data-tip="Tam genişlik">
+          ${q.fullwidth?'<span style="font-size:.8rem">◧</span>':'<span style="font-size:.8rem">↔</span>'}
+        </button>
+        <button class="qcard-act del" onclick="event.stopPropagation();delQCalisma('${q.id}')" data-tip="Sil">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M3 6h18M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2"/></svg>
+        </button>
       </div>
     </div>`;
   }).join('');
@@ -7102,7 +7166,7 @@ function renderGroupQuestions(group){
     
     const imgPreview=firstImg?`<div class="qcard-img-wrap"><img src="${firstImg}"></div>`:'';
     
-    return `<div class="qcard${_activeQId===q.id?' active':''}${q.fullwidth?' fullwidth':''}" id="qcard-${q.id}" onclick="openGroupQEdit('${q.id}')">
+    return `<div class="qcard${_activeQId===q.id?' active':''}${q.fullwidth?' fullwidth':''}${q.isNote?' is-note':''}" id="qcard-${q.id}" onclick="openGroupQEdit('${q.id}')">
       <div class="qcard-head">
         <span class="qcard-num">${qNum}.</span>
         <span class="qcard-type ${tClass[q.type]||'mc'}">${tLabel[q.type]||''}</span>
@@ -7119,14 +7183,28 @@ function renderGroupQuestions(group){
       </div>
       ${opts}
       <div class="qcard-acts">
-        <button class="qcard-act" onclick="event.stopPropagation();moveGroupQ('${q.id}',-1)" data-tip="Yukarı">↑</button>
-        <button class="qcard-act" onclick="event.stopPropagation();moveGroupQ('${q.id}',1)" data-tip="Aşağı">↓</button>
-        <button class="qcard-act" onclick="event.stopPropagation();toggleGroupQType('${q.id}')" data-tip="Tip değiştir" style="font-size:.68rem">${q.type==='mc'?'→AÇ':'→ÇS'}</button>
-        <button class="qcard-act" onclick="event.stopPropagation();toggleGroupQFullwidth('${q.id}')" data-tip="Tam genişlik">${q.fullwidth?'◧':'↔'}</button>
-        <label class="qcard-act" onclick="event.stopPropagation()" data-tip="Resim Ekle">📷
+        <button class="qcard-act" onclick="event.stopPropagation();moveGroupQ('${q.id}',-1)" data-tip="Yukarı taşı">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M18 15l-6-6-6 6"/></svg>
+        </button>
+        <button class="qcard-act" onclick="event.stopPropagation();moveGroupQ('${q.id}',1)" data-tip="Aşağı taşı">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M6 9l6 6 6-6"/></svg>
+        </button>
+        <button class="qcard-act" onclick="event.stopPropagation();toggleGroupQType('${q.id}')" data-tip="Tür değiştir">
+          ${q.type==='mc'?'<span style="font-size:.7rem">ÇS→AÇ</span>':'<span style="font-size:.7rem">AÇ→ÇS</span>'}
+        </button>
+        <button class="qcard-act note-btn ${q.isNote?'active':''}" onclick="event.stopPropagation();toggleGroupQNote('${q.id}')" data-tip="${q.isNote?'Soru olarak işaretle':'Açıklama olarak işaretle'}">
+          ${q.isNote?'<span>✓ Açıklama</span>':'<span>📝 Açıklama</span>'}
+        </button>
+        <button class="qcard-act" onclick="event.stopPropagation();toggleGroupQFullwidth('${q.id}')" data-tip="Tam genişlik">
+          ${q.fullwidth?'<span style="font-size:.8rem">◧</span>':'<span style="font-size:.8rem">↔</span>'}
+        </button>
+        <label class="qcard-act" onclick="event.stopPropagation()" data-tip="Resim ekle">
+          <span style="font-size:.85rem">📷</span>
           <input type="file" accept="image/*" style="display:none" onchange="qAddImgFileToGroup(this,'${q.id}')">
         </label>
-        <button class="qcard-act del" onclick="event.stopPropagation();delGroupQ('${q.id}')" data-tip="Sil">🗑</button>
+        <button class="qcard-act del" onclick="event.stopPropagation();delGroupQ('${q.id}')" data-tip="Sil">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M3 6h18M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2"/></svg>
+        </button>
       </div>
     </div>`;
   }).join('');
@@ -7800,6 +7878,19 @@ function toggleGroupQFullwidth(qid){
   if(!q)return;
   
   q.fullwidth=!q.fullwidth;
+  save();
+  renderGroupQuestions(group);
+}
+
+function toggleGroupQNote(qid){
+  if(!activeExamGroup)return;
+  const group=db.examGroups.find(g=>g.id===activeExamGroup);
+  if(!group)return;
+  
+  const q=group.questions.find(qq=>qq.id===qid);
+  if(!q)return;
+  
+  q.isNote=!q.isNote;
   save();
   renderGroupQuestions(group);
 }
