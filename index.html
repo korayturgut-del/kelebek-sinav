@@ -1684,6 +1684,7 @@ input, textarea, select, [contenteditable] {
     <div class="nav-tab desktop-only tablet-only" id="nav-sorular" onclick="showPage('sorular')">✏️ Sınav Editörü</div>
     <div class="nav-tab desktop-only tablet-only" id="nav-calisma" onclick="showPage('calisma')">📝 Çalışma Kağıdı</div>
     <div class="nav-tab" id="nav-zkitap" onclick="showPage('zkitap')">📖 Z-Kitap</div>
+    <div class="nav-tab" id="nav-zkduzenle" onclick="showPage('zkduzenle')">📝 Z-Kitap Düzenle</div>
     <div class="nav-tab desktop-only tablet-only" id="nav-kelebek" onclick="showPage('kelebek')">🦋 Kelebek Dağıtım</div>
     <div class="nav-tab" id="nav-performans" onclick="showPage('performans')">📊 Performans</div>
   </div>
@@ -2315,6 +2316,57 @@ input, textarea, select, [contenteditable] {
     📖 Henüz soru yüklenmedi.<br>
     <b>📂 KLB/JSON Yükle</b> — Çalışma dosyalarından soru kartları oluşturur<br>
     <b>📄 PDF Yükle</b> — PDF açılır, soruları elle keserek Z-Kitap'a dönüştürürsünüz
+  </div>
+</div>
+
+<!-- ======== Z-KİTAP DÜZENLE (Çalışma Sayfası mimarisi) ======== -->
+<div id="page-zkduzenle" class="page" style="padding-top:16px">
+  <div class="card" style="margin-bottom:12px;padding:12px 16px">
+    <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap">
+      <span style="font-size:1.4rem">📝</span>
+      <div>
+        <div style="font-weight:700;font-size:.95rem" id="zkd-title-display">Z-Kitap Düzenle</div>
+        <div style="color:var(--text3);font-size:.8rem" id="zkd-meta-display"></div>
+      </div>
+      <div style="flex:1"></div>
+      <button class="btn btn-ghost btn-sm" onclick="zkdNew()">🆕 Yeni</button>
+      <button class="btn btn-ghost btn-sm" onclick="zkdLoadFromZKitap()">📖 Z-Kitap'tan Al</button>
+      <div class="we-div" style="height:24px"></div>
+      <button class="btn btn-ghost btn-sm" onclick="zkdPreview()">👁️ Önizle</button>
+      <button class="btn btn-primary btn-sm" onclick="zkdPrint()">🖨️ Yazdır / PDF</button>
+    </div>
+  </div>
+
+  <div class="card" style="margin-bottom:12px;padding:10px 14px">
+    <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+      <span style="font-size:.78rem;font-weight:700;color:var(--text2)">Ekle:</span>
+      <button class="btn btn-primary btn-sm" onclick="zkdAddQ('mc')">🔵 Çoktan Seçmeli</button>
+      <button class="btn btn-ghost btn-sm" onclick="zkdAddQ('open')">📝 Açık Uçlu</button>
+      <button class="btn btn-ghost btn-sm" onclick="zkdAddSection()">📌 Bölüm Başlığı</button>
+      <div class="we-div"></div>
+      <button class="btn btn-ghost btn-sm" onclick="zkdClearAll()" style="color:var(--red)">🗑️ Temizle</button>
+    </div>
+  </div>
+
+  <div style="display:grid;grid-template-columns:280px 1fr;gap:16px;margin-bottom:16px">
+    <div>
+      <div class="card">
+        <div class="card-title" style="margin-bottom:12px">📐 Sayfa Seçenekleri</div>
+        <div class="lbl" style="margin-bottom:6px">📄 Sütun Düzeni</div>
+        <div class="col-picker">
+          <div class="col-btn" id="zkd-col-1" onclick="zkdSetCol(1)">1 Sütun</div>
+          <div class="col-btn active" id="zkd-col-2" onclick="zkdSetCol(2)">2 Sütun</div>
+        </div>
+        <div class="sep"></div>
+        <div><label class="lbl">Filigran</label><input class="inp inp-sm" id="zkd-filigran" placeholder="GİZLİ"></div>
+      </div>
+    </div>
+    <div>
+      <div id="zkd-qlist" class="qlist-wrap"></div>
+      <div id="zkd-empty" class="alert alert-info" style="margin-top:8px">
+        ℹ️ Henüz soru eklenmedi. Yukarıdan soru ekleyin veya <b>Z-Kitap'tan Al</b> ile mevcut soruları aktarın.
+      </div>
+    </div>
   </div>
 </div>
 
@@ -3366,6 +3418,7 @@ function showPage(id){
   if(id==='sorular'){renderExamGroups();} // YENİ: Grup sistemi
   if(id==='performans'){perfInit();} // PERFORMANS SİSTEMİ
   if(id==='zkitap'){zkRenderCards();} // Z-KİTAP
+  if(id==='zkduzenle'){zkdRenderList();} // Z-KİTAP DÜZENLE
 }
 
 // ============================================================
@@ -8836,13 +8889,36 @@ function saveCalismaToFile(){
 function loadCalismaFromFile(){
   const input=document.createElement('input');
   input.type='file';
-  input.accept='.json,.kdb,.db';
+  input.accept='.klb,.json,.kdb,.db';
   
   input.onchange=function(e){
     const file=e.target.files[0];
     if(!file)return;
     
     var ext=file.name.split('.').pop().toLowerCase();
+    
+    if(ext==='klb'){
+      var reader3=new FileReader();
+      reader3.onload=function(ev3){
+        try{
+          var data=klbDecode(ev3.target.result);
+          var qs=data.calismaQuestions||data.questions||[];
+          if(!qs.length){alert('⚠️ Dosyada soru bulunamadı!');return;}
+          if(db.calismaQuestions.length>0){
+            if(!confirm('Mevcut sorular silinecek. Devam?'))return;
+          }
+          db.calismaQuestions=qs;
+          currentCalismaName=data.fileName||data.groupName||file.name.replace(/\.[^.]+$/,'');
+          calismaCnt=0;
+          qs.forEach(function(q){var n=parseInt((q.id||'').replace('c_',''))||0;if(n>=calismaCnt)calismaCnt=n+1;});
+          if(data.settings)Object.assign(db.settings,data.settings);
+          save();loadSettings();renderQuestionsCalisma();updateCalismaTitle();
+          alert('✅ KLB dosyasından yüklendi!\n'+qs.length+' soru');
+        }catch(err){alert('❌ KLB dosyası okunamadı!\n'+err.message);}
+      };
+      reader3.readAsText(file);
+      return;
+    }
     
     if(ext==='db'){
       // ZIP format — harici .db dosyası
@@ -8886,9 +8962,10 @@ function loadCalismaFromFile(){
       try{
         const data=JSON.parse(event.target.result);
         
-        // Hem calisma hem kelebek-exam-group hem exam formatını kabul et
-        if(data.type!=='calisma'&&data.type!=='kelebek-exam-group'&&data.type!=='exam'){
-          alert('⚠️ Bu geçerli bir dosya değil!');
+        // Hem calisma hem kelebek-exam-group hem exam hem worksheet formatını kabul et
+        let qs = data.calismaQuestions || data.questions || [];
+        if(!qs.length){
+          alert('⚠️ Bu dosyada soru bulunamadı!');
           return;
         }
         
@@ -8896,8 +8973,8 @@ function loadCalismaFromFile(){
           if(!confirm('Mevcut sorular silinecek. Dosyadan yüklensin mi?'))return;
         }
         
-        db.calismaQuestions=data.questions||[];
-        currentCalismaName=data.name||'Yüklenen Çalışma';
+        db.calismaQuestions=qs;
+        currentCalismaName=data.fileName||data.name||data.groupName||file.name.replace(/\.[^.]+$/,'');
         
         if(data.settings){
           Object.assign(db.settings,data.settings);
@@ -11600,6 +11677,90 @@ let zkPdfPage = 1;
 let zkPdfTotalPages = 0;
 let zkPdfCrops = [];   // [{dataUrl, page, docIdx, rect}]
 
+// ==== KLB/JSON DOSYA YÜKLEME ====
+function zkLoadFile(){
+  const input = document.createElement('input');
+  input.type = 'file';
+  input.accept = '.klb,.kdb,.db,.json';
+  input.onchange = function(e){
+    const file = e.target.files[0];
+    if(!file) return;
+    const ext = file.name.split('.').pop().toLowerCase();
+    const reader = new FileReader();
+    if(ext === 'klb'){
+      reader.onload = function(ev){
+        try {
+          const data = klbDecode(ev.target.result);
+          let qs = data.calismaQuestions || data.questions || [];
+          if(!qs.length){ klbToast('⚠️ Soru bulunamadı!','error'); return; }
+          zkQuestions = qs.map((q,i) => ({...q, _zkType:'html', id: q.id||('zk_'+i)}));
+          zkRenderCards();
+          H('zkitap-title').textContent = '📖 ' + (data.fileName || data.groupName || file.name);
+          H('zkitap-meta').textContent = zkQuestions.filter(q=>q.type!=='section').length + ' soru';
+          klbToast('✅ ' + zkQuestions.length + ' soru yüklendi', 'success');
+        } catch(err){ klbToast('❌ ' + err.message, 'error'); }
+      };
+      reader.readAsText(file);
+    } else if(ext === 'db'){
+      reader.onload = function(ev){
+        try {
+          const buf = ev.target.result;
+          const zipFiles = parseZipEntries(new Uint8Array(buf));
+          if(!zipFiles['config.json']){ klbToast('⚠️ Geçersiz .db!','error'); return; }
+          const config = JSON.parse(new TextDecoder('utf-8').decode(zipFiles['config.json']));
+          if(!config.questions?.length){ klbToast('⚠️ Soru yok!','error'); return; }
+          zkQuestions = config.questions.map((extQ, idx) => {
+            let html = extQ.editor?.html || '';
+            const rid = extQ.randomid || '';
+            if(!html && rid && zipFiles[rid+'.jpg']){
+              html = '<img src="data:image/jpeg;base64,'+uint8ToBase64(zipFiles[rid+'.jpg'])+'" style="max-width:100%">';
+            }
+            return {id:'zk_'+Date.now()+'_'+idx, _zkType:'html', type:'open', text:html, options:{}, images:[]};
+          });
+          zkRenderCards();
+          H('zkitap-title').textContent = '📖 ' + file.name.replace(/\.[^.]+$/,'');
+          H('zkitap-meta').textContent = zkQuestions.length + ' soru';
+          klbToast('✅ Yüklendi', 'success');
+        } catch(err){ klbToast('❌ ' + err.message, 'error'); }
+      };
+      reader.readAsArrayBuffer(file);
+    } else {
+      reader.onload = function(ev){
+        try {
+          const data = JSON.parse(ev.target.result);
+          let qs = data.calismaQuestions || data.questions || data.data?.calismaQuestions || data.data?.questions || [];
+          if(!qs.length){ klbToast('⚠️ Soru yok!','error'); return; }
+          zkQuestions = qs.map((q,i) => ({...q, _zkType:'html', id: q.id||('zk_'+i)}));
+          zkRenderCards();
+          H('zkitap-title').textContent = '📖 ' + (data.fileName || file.name);
+          H('zkitap-meta').textContent = zkQuestions.filter(q=>q.type!=='section').length + ' soru';
+          klbToast('✅ Yüklendi!', 'success');
+        } catch(err){ klbToast('❌ ' + err.message, 'error'); }
+      };
+      reader.readAsText(file);
+    }
+  };
+  input.click();
+}
+
+function zkLoadFromCalisma(){
+  if(!db.calismaQuestions?.length){ klbToast('⚠️ Çalışma kağıdında soru yok!','error'); return; }
+  zkQuestions = JSON.parse(JSON.stringify(db.calismaQuestions)).map((q,i) => ({...q, _zkType:'html', id: q.id||('zk_'+i)}));
+  zkRenderCards();
+  H('zkitap-title').textContent = '📖 ' + (currentCalismaName || 'Çalışma Kağıdı');
+  H('zkitap-meta').textContent = zkQuestions.filter(q=>q.type!=='section').length + ' soru';
+  klbToast('✅ ' + zkQuestions.length + ' soru alındı', 'success');
+}
+
+function zkClearAll(){
+  if(!zkQuestions.length) return;
+  if(!confirm('Tüm Z-Kitap soruları silinsin mi?')) return;
+  zkQuestions = [];
+  zkRenderCards();
+  H('zkitap-title').textContent = 'Z-Kitap';
+  H('zkitap-meta').textContent = 'Dosya yükleyerek başlayın';
+}
+
 // ==== PDF YÜKLEME (çoklu) ====
 function zkLoadPDF(){
   const input = document.createElement('input');
@@ -11822,31 +11983,6 @@ function zkPdfCropClose(){
   zkPdfDocs=[]; zkPdfActiveDoc=0;
 }
 
-// ==== ÖNİZLEME & YAZDIRMA (doPrintCalisma referans) ====
-function zkPdfPreview(){
-  if(!zkPdfCrops.length){ klbToast('⚠️ Henüz soru kesilmedi!','error'); return; }
-  const s=db.settings||{};
-  const marginMap={dar:'6mm 8mm',normal:'12mm 15mm',genis:'18mm 22mm'};
-  const padding=marginMap[s.kenarBoslugu||'normal'];
-  const filigran=s.filigran||'';
-  const wmOpacity=(s.filigranOpaklik||8)/100;
-  const wmHtml=filigran?'<div class="p-watermark" style="opacity:'+wmOpacity+'">'+filigran+'</div>':'';
-  let qsHtml='';
-  zkPdfCrops.forEach((crop,idx)=>{
-    qsHtml+='<div class="pq" style="margin-bottom:14pt;page-break-inside:avoid">';
-    qsHtml+='<div style="font-weight:700;font-size:11pt;margin-bottom:6pt">'+(idx+1)+'.</div>';
-    qsHtml+='<div><img src="'+crop.dataUrl+'" style="max-width:100%;height:auto;border:1px solid #ddd"></div>';
-    qsHtml+='</div>';
-  });
-  const pageHtml='<div class="ppage" style="padding:'+padding+'">'+wmHtml
-    +'<div style="text-align:center;font-size:14pt;font-weight:700;margin-bottom:4pt">'+(s.okulAdi||'')+'</div>'
-    +'<div style="text-align:center;font-size:12pt;font-weight:600;margin-bottom:8pt;color:#3b82f6">Z-Kitap Çalışma Sayfası</div>'
-    +'<div style="text-align:center;font-size:10pt;color:#666;margin-bottom:12pt">'+(s.dersAdi||'')+' • '+new Date().toLocaleDateString('tr-TR')+'</div>'
-    +'<hr style="border:none;border-top:2px solid #ddd;margin:12pt 0">'
-    +'<div class="pq-container">'+qsHtml+'</div></div>';
-  H('zk-pdf-preview-content').innerHTML='<div style="background:#fff;width:min(800px,96vw);box-shadow:0 8px 48px rgba(0,0,0,.8);border-radius:4px;overflow:auto">'+pageHtml+'</div>';
-  H('zk-pdf-preview').style.display='flex';
-}
 function zkPdfPreviewClose(){ H('zk-pdf-preview').style.display='none'; }
 function zkPdfPrint(){
   const content=H('zk-pdf-preview-content').querySelector('.ppage');
@@ -12199,6 +12335,229 @@ window.addEventListener('resize',function(){
   const fs=H('zk-fullscreen');
   if(fs&&fs.style.display!=='none') setTimeout(()=>zkResizeCanvas(),100);
 });
+
+// ============================================================
+// Z-KİTAP DÜZENLE (Çalışma Sayfası mimarisi ile)
+// ============================================================
+let zkdQuestions = []; // Düzenleme soruları (ayrı havuz)
+let zkdCnt = 0;
+let zkdColCount = 2;
+
+function zkdNew(){
+  if(zkdQuestions.length && !confirm('Mevcut sorular silinecek. Yeni başlansın mı?')) return;
+  zkdQuestions = [];
+  zkdCnt = 0;
+  zkdRenderList();
+  H('zkd-title-display').textContent = 'Z-Kitap Düzenle';
+  H('zkd-meta-display').textContent = '';
+}
+
+function zkdLoadFromZKitap(){
+  if(!zkQuestions.length){ klbToast('⚠️ Z-Kitap\'ta soru yok! Önce Z-Kitap\'a soru yükleyin.','error'); return; }
+  if(zkdQuestions.length && !confirm('Mevcut sorular silinecek. Z-Kitap\'tan aktarılsın mı?')) return;
+  zkdQuestions = JSON.parse(JSON.stringify(zkQuestions));
+  zkdCnt = zkdQuestions.length;
+  zkdRenderList();
+  H('zkd-title-display').textContent = H('zkitap-title').textContent.replace('📖','📝');
+  H('zkd-meta-display').textContent = zkdQuestions.filter(q=>q.type!=='section').length + ' soru';
+  klbToast('✅ ' + zkdQuestions.length + ' soru aktarıldı','success');
+}
+
+function zkdAddQ(type){
+  const id = 'zkd_' + (zkdCnt++);
+  zkdQuestions.push({id, type, _zkType:'html', text:'', options:{A:'',B:'',C:'',D:'',E:''}, correct:null, siklarResimde:false, bosluk:0, images:[]});
+  zkdRenderList();
+  // Soru düzenlemeyi çalışma sayfası editörüne yönlendir
+  openQEditCalisma_zkd(id);
+}
+
+function zkdAddSection(){
+  const title = prompt('Bölüm başlığı:','Bölüm');
+  if(!title) return;
+  zkdQuestions.push({id:'zkd_'+(zkdCnt++), type:'section', title});
+  zkdRenderList();
+}
+
+function zkdClearAll(){
+  if(!zkdQuestions.length) return;
+  if(!confirm('Tüm sorular silinsin mi?')) return;
+  zkdQuestions = [];
+  zkdCnt = 0;
+  zkdRenderList();
+}
+
+function zkdDelQ(id){
+  zkdQuestions = zkdQuestions.filter(q => q.id !== id);
+  zkdRenderList();
+}
+
+function zkdMoveQ(id, dir){
+  const i = zkdQuestions.findIndex(q => q.id === id);
+  const j = i + dir;
+  if(j < 0 || j >= zkdQuestions.length) return;
+  [zkdQuestions[i], zkdQuestions[j]] = [zkdQuestions[j], zkdQuestions[i]];
+  zkdRenderList();
+}
+
+function zkdSetCol(n){
+  zkdColCount = n;
+  document.querySelectorAll('[id^="zkd-col-"]').forEach(b => b.classList.remove('active'));
+  const el = H('zkd-col-'+n);
+  if(el) el.classList.add('active');
+}
+
+function zkdRenderList(){
+  const wrap = H('zkd-qlist');
+  const empty = H('zkd-empty');
+  if(!wrap) return;
+  if(!zkdQuestions.length){
+    wrap.innerHTML = '';
+    if(empty) empty.style.display = 'block';
+    return;
+  }
+  if(empty) empty.style.display = 'none';
+  let qNum = 0;
+  wrap.innerHTML = zkdQuestions.map((q, idx) => {
+    if(q.type === 'section'){
+      return '<div class="qcard section-card" style="height:auto">' +
+        '<div class="qcard-head"><span style="font-weight:800;color:var(--amber)">📌 '+q.title+'</span>' +
+        '<div style="margin-left:auto;display:flex;gap:4px">' +
+        '<button class="qcard-act" onclick="zkdMoveQ(\''+q.id+'\',-1)">▲</button>' +
+        '<button class="qcard-act" onclick="zkdMoveQ(\''+q.id+'\',1)">▼</button>' +
+        '<button class="qcard-act del" onclick="zkdDelQ(\''+q.id+'\')">🗑️</button></div></div></div>';
+    }
+    qNum++;
+    const hasImg = q._zkType === 'img' && q._imgSrc;
+    let preview = hasImg
+      ? '<img src="'+q._imgSrc+'" style="max-width:100%;max-height:140px;object-fit:contain">'
+      : ((q.text||'').replace(/<[^>]+>/g,' ').replace(/&nbsp;/g,' ').trim().substring(0,80) || '<span style="opacity:.4">Boş soru</span>');
+
+    return '<div class="qcard" style="height:auto;min-height:100px;cursor:default">' +
+      '<div class="qcard-head"><span class="qcard-num">S.'+qNum+'</span>' +
+      '<span class="qcard-type '+(q.type==='mc'?'mc':'open')+'">'+
+      (q.type==='mc'?'ÇS': hasImg?'PDF':'AÜ')+'</span>' +
+      '<div style="margin-left:auto;display:flex;gap:4px">' +
+      '<button class="qcard-act" onclick="zkdMoveQ(\''+q.id+'\',-1)">▲</button>' +
+      '<button class="qcard-act" onclick="zkdMoveQ(\''+q.id+'\',1)">▼</button>' +
+      '<button class="qcard-act del" onclick="zkdDelQ(\''+q.id+'\')">🗑️</button></div></div>' +
+      '<div class="qcard-preview-text" style="padding:8px 12px">'+preview+'</div></div>';
+  }).join('');
+  H('zkd-meta-display').textContent = qNum + ' soru';
+}
+
+// Soru düzenleme - mevcut çalışma sayfası editörünü kullan
+function openQEditCalisma_zkd(id){
+  const q = zkdQuestions.find(x => x.id === id);
+  if(!q || q.type === 'section') return;
+  // Geçici olarak çalışma kağıdına kopyala, düzenle, geri al
+  // Basit yaklaşım: prompt ile metin düzenleme
+  const newText = prompt('Soru metni:', (q.text||'').replace(/<[^>]+>/g,''));
+  if(newText !== null) q.text = newText;
+  zkdRenderList();
+}
+
+// ==== ÖNİZLEME & YAZDIRMA ====
+function zkdBuildPrintHTML(){
+  const s = db.settings || {};
+  const sutun = zkdColCount;
+  const filigran = (H('zkd-filigran')||{}).value || '';
+  const wmOpacity = (s.filigranOpaklik||8)/100;
+  const marginMap = {dar:'6mm 8mm', normal:'12mm 15mm', genis:'18mm 22mm'};
+  const padding = marginMap[s.kenarBoslugu||'normal'];
+  const wmHtml = filigran ? '<div class="p-watermark" style="opacity:'+wmOpacity+'">'+filigran+'</div>' : '';
+
+  // Soruları HTML'e çevir
+  let qNum = 0;
+  const qsHtml = zkdQuestions.map(q => {
+    if(q.type === 'section'){
+      return '<div class="pq-section-title">'+q.title+'</div>';
+    }
+    qNum++;
+    let html = '<div class="pq" style="margin-bottom:14pt;page-break-inside:avoid">';
+    html += '<div style="font-weight:700;font-size:11pt;margin-bottom:6pt">'+qNum+'.</div>';
+
+    if(q._zkType === 'img' && q._imgSrc){
+      html += '<div><img src="'+q._imgSrc+'" style="max-width:100%;height:auto;border:1px solid #ddd"></div>';
+    } else {
+      if(q.text) html += '<div style="margin-bottom:6pt;line-height:1.5">'+q.text+'</div>';
+      if(q.images?.length) q.images.forEach(src => html += '<img class="pq-img" src="'+src+'">');
+      if(q.type === 'mc' && !q.siklarResimde){
+        html += '<div class="pq-opts">';
+        ['A','B','C','D','E'].forEach(k => { if(q.options?.[k]) html += '<div class="pq-opt"><b>'+k+')</b> '+q.options[k]+'</div>'; });
+        html += '</div>';
+      }
+    }
+    html += '</div>';
+    return html;
+  }).join('');
+
+  const colClass = sutun > 1 ? ' cols-'+sutun+' pq-col-rule' : '';
+
+  return '<div class="ppage" style="padding:'+padding+'">'
+    + wmHtml
+    + '<div style="text-align:center;font-size:14pt;font-weight:700;margin-bottom:4pt">'+(s.okulAdi||'')+'</div>'
+    + '<div style="text-align:center;font-size:12pt;font-weight:600;margin-bottom:8pt;color:#3b82f6">Z-Kitap Çalışma Sayfası</div>'
+    + '<div style="text-align:center;font-size:10pt;color:#666;margin-bottom:12pt">'+(s.dersAdi||'')+' • '+new Date().toLocaleDateString('tr-TR')+'</div>'
+    + '<hr style="border:none;border-top:2px solid #ddd;margin:12pt 0">'
+    + '<div class="pq-container'+colClass+'">'+qsHtml+'</div>'
+    + '</div>';
+}
+
+function zkdPreview(){
+  if(!zkdQuestions.length){ klbToast('⚠️ Soru yok!','error'); return; }
+  const html = zkdBuildPrintHTML();
+  // Önizleme modalı aç
+  let ex = H('zkd-preview-modal');
+  if(ex) ex.remove();
+  const m = document.createElement('div');
+  m.id = 'zkd-preview-modal';
+  m.style.cssText = 'position:fixed;inset:0;z-index:6000;background:rgba(0,0,0,.85);display:flex;align-items:center;justify-content:center;padding:20px;overflow-y:auto';
+  const pg = document.createElement('div');
+  pg.style.cssText = 'background:#fff;width:min(800px,96vw);max-height:90vh;overflow-y:auto;box-shadow:0 8px 48px rgba(0,0,0,.8);border-radius:8px;position:relative';
+  pg.innerHTML = '<div style="position:sticky;top:0;background:#fff;padding:8px 12px;border-bottom:1px solid #ddd;display:flex;gap:8px;z-index:2">' +
+    '<button onclick="zkdPrint()" class="btn btn-primary btn-sm">🖨️ Yazdır / PDF</button>' +
+    '<div style="flex:1"></div>' +
+    '<button onclick="H(\'zkd-preview-modal\').remove()" class="btn btn-ghost btn-sm">✕ Kapat</button></div>' +
+    html;
+  m.appendChild(pg);
+  document.body.appendChild(m);
+  m.addEventListener('click', e => { if(e.target === m) m.remove(); });
+}
+
+function zkdPrint(){
+  if(!zkdQuestions.length){ klbToast('⚠️ Soru yok!','error'); return; }
+  const html = zkdBuildPrintHTML();
+  H('print-output').innerHTML = html;
+  const pm = H('zkd-preview-modal');
+  if(pm) pm.remove();
+  setTimeout(() => window.print(), 300);
+}
+
+// Z-Kitap önizleme de 2 sütunlu olsun
+function zkPdfPreview(){
+  if(!zkPdfCrops.length){ klbToast('⚠️ Henüz soru kesilmedi!','error'); return; }
+  const s=db.settings||{};
+  const marginMap={dar:'6mm 8mm',normal:'12mm 15mm',genis:'18mm 22mm'};
+  const padding=marginMap[s.kenarBoslugu||'normal'];
+  const filigran=s.filigran||'';
+  const wmOpacity=(s.filigranOpaklik||8)/100;
+  const wmHtml=filigran?'<div class="p-watermark" style="opacity:'+wmOpacity+'">'+filigran+'</div>':'';
+  let qsHtml='';
+  zkPdfCrops.forEach((crop,idx)=>{
+    qsHtml+='<div class="pq" style="margin-bottom:14pt;page-break-inside:avoid">';
+    qsHtml+='<div style="font-weight:700;font-size:11pt;margin-bottom:6pt">'+(idx+1)+'.</div>';
+    qsHtml+='<div><img src="'+crop.dataUrl+'" style="max-width:100%;height:auto;border:1px solid #ddd"></div>';
+    qsHtml+='</div>';
+  });
+  const pageHtml='<div class="ppage" style="padding:'+padding+'">'+wmHtml
+    +'<div style="text-align:center;font-size:14pt;font-weight:700;margin-bottom:4pt">'+(s.okulAdi||'')+'</div>'
+    +'<div style="text-align:center;font-size:12pt;font-weight:600;margin-bottom:8pt;color:#3b82f6">Z-Kitap Çalışma Sayfası</div>'
+    +'<div style="text-align:center;font-size:10pt;color:#666;margin-bottom:12pt">'+(s.dersAdi||'')+' • '+new Date().toLocaleDateString('tr-TR')+'</div>'
+    +'<hr style="border:none;border-top:2px solid #ddd;margin:12pt 0">'
+    +'<div class="pq-container cols-2 pq-col-rule">'+qsHtml+'</div></div>';
+  H('zk-pdf-preview-content').innerHTML='<div style="background:#fff;width:min(800px,96vw);box-shadow:0 8px 48px rgba(0,0,0,.8);border-radius:4px;overflow:auto">'+pageHtml+'</div>';
+  H('zk-pdf-preview').style.display='flex';
+}
 
 
 </script>
