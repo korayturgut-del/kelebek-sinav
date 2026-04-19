@@ -7,6 +7,8 @@
 <script src="https://accounts.google.com/gsi/client" async defer></script>
 <script src="https://apis.google.com/js/api.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/fabric.js/5.3.1/fabric.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+<script>if(window.pdfjsLib)pdfjsLib.GlobalWorkerOptions.workerSrc='https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';</script>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
 <style>
 /* ===== NEBULA DESIGN SYSTEM 2024 ===== */
@@ -511,6 +513,23 @@ label.lbl{font-size:.78rem;font-weight:600;color:var(--text2);display:block;marg
   #zk-cards-wrap{grid-template-columns:1fr!important}
   .zk-card{height:180px}
 }
+
+/* Z-Kitap PDF crop overlay */
+#zk-pdf-canvas-wrap{user-select:none;-webkit-user-select:none}
+.zk-crop-preview{
+  display:inline-block;border:2px solid var(--green);border-radius:6px;
+  margin:4px;cursor:pointer;transition:all .2s;position:relative;overflow:hidden;
+}
+.zk-crop-preview:hover{border-color:var(--accent);transform:scale(1.05)}
+.zk-crop-preview img{display:block;height:80px;width:auto}
+.zk-crop-preview .zk-crop-num{
+  position:absolute;top:2px;left:2px;background:rgba(0,0,0,.7);color:#fff;
+  font-size:.6rem;font-weight:700;padding:1px 5px;border-radius:4px;
+}
+
+/* Z-Kitap kart: resim görseli */
+.zk-card-img{flex:1;overflow:hidden;display:flex;align-items:center;justify-content:center;background:#f0f0f0;padding:4px}
+.zk-card-img img{max-width:100%;max-height:100%;object-fit:contain}
 ::-webkit-scrollbar-track{background:var(--bg0)}
 ::-webkit-scrollbar-thumb{background:var(--border2);border-radius:3px}
 ::-webkit-scrollbar-thumb:hover{background:var(--text3)}
@@ -2270,43 +2289,51 @@ input, textarea, select, [contenteditable] {
         <div style="color:var(--text3);font-size:.78rem" id="zkitap-meta">Dosya yükleyerek başlayın</div>
       </div>
       <div style="flex:1"></div>
-      <button class="btn btn-primary btn-sm" onclick="zkLoadFile()">📂 Dosya Yükle</button>
-      <button class="btn btn-ghost btn-sm" onclick="zkLoadFromCalisma()">📝 Çalışma Kağıdından Al</button>
+      <button class="btn btn-primary btn-sm" onclick="zkLoadFile()">📂 KLB/JSON Yükle</button>
+      <button class="btn btn-success btn-sm" onclick="zkLoadPDF()">📄 PDF Yükle</button>
+      <button class="btn btn-ghost btn-sm" onclick="zkLoadFromCalisma()">📝 Çalışmadan Al</button>
       <button class="btn btn-ghost btn-sm" onclick="zkClearAll()" style="color:var(--red)">🗑️ Temizle</button>
     </div>
   </div>
 
   <!-- Soru kartları grid -->
-  <div id="zk-cards-wrap" class="qlist-wrap" style="grid-template-columns:repeat(auto-fill,minmax(280px,1fr))"></div>
+  <div id="zk-cards-wrap" class="qlist-wrap" style="grid-template-columns:repeat(auto-fill,minmax(220px,1fr))"></div>
   <div id="zk-empty" class="alert alert-info" style="margin-top:8px">
-    📖 Henüz soru yüklenmedi. <b>Dosya Yükle</b> ile .klb, .kdb, .json dosyası seçin veya <b>Çalışma Kağıdından Al</b> ile mevcut soruları aktarın.
+    📖 Henüz soru yüklenmedi.<br>
+    <b>📂 KLB/JSON Yükle</b> — Çalışma dosyalarından soru kartları oluşturur<br>
+    <b>📄 PDF Yükle</b> — PDF açılır, soruları elle keserek Z-Kitap'a dönüştürürsünüz
   </div>
 </div>
 
 <!-- Z-KİTAP TAM EKRAN OVERLAY -->
-<div id="zk-fullscreen" style="display:none;position:fixed;inset:0;z-index:8000;background:var(--bg0);flex-direction:column">
+<div id="zk-fullscreen" style="display:none;position:fixed;inset:0;z-index:8000;background:#fff;flex-direction:column">
   
   <!-- Üst bar -->
-  <div id="zk-topbar" style="height:48px;background:var(--bg2);border-bottom:1px solid var(--border);display:flex;align-items:center;padding:0 12px;gap:8px;flex-shrink:0;z-index:10">
-    <button class="icon-btn" onclick="zkClose()" style="font-size:1.1rem" data-tip="Kapat">✕</button>
-    <span id="zk-q-indicator" style="font-weight:700;font-size:.88rem;color:var(--text)">1 / 10</span>
+  <div id="zk-topbar" style="height:48px;background:var(--bg2);border-bottom:1px solid var(--border);display:flex;align-items:center;padding:0 8px;gap:6px;flex-shrink:0;z-index:10">
+    <button class="icon-btn" onclick="zkClose()" data-tip="Kapat">✕</button>
+    <span id="zk-q-indicator" style="font-weight:700;font-size:.85rem;color:var(--text)">1 / 10</span>
     <div style="flex:1"></div>
     <button class="icon-btn" onclick="zkPrev()" data-tip="Önceki">◀</button>
     <button class="icon-btn" onclick="zkNext()" data-tip="Sonraki">▶</button>
     <div class="we-div" style="height:24px"></div>
-    <button class="icon-btn" id="zk-pen-toggle" onclick="zkTogglePanel()" data-tip="Yazım Araçları" style="font-size:1.1rem">✏️</button>
-    <button class="icon-btn" onclick="zkToggleZoom()" data-tip="Yakınlaştır/Uzaklaştır" id="zk-zoom-btn">🔍</button>
+    <button class="icon-btn" id="zk-pen-toggle" onclick="zkTogglePanel()" data-tip="Yazım Araçları">✏️</button>
+    <button class="icon-btn" onclick="zkToggleZoom()" id="zk-zoom-btn" data-tip="Yakınlaştır">🔍</button>
   </div>
 
-  <!-- Ana içerik alanı -->
-  <div style="flex:1;display:flex;overflow:hidden;position:relative">
+  <!-- Ana içerik -->
+  <div style="flex:1;display:flex;overflow:hidden;position:relative" id="zk-main-area">
     
-    <!-- Soru görüntüleme alanı (swipe destekli) -->
-    <div id="zk-swipe-area" style="flex:1;overflow:auto;position:relative;touch-action:pan-y;-webkit-overflow-scrolling:touch">
-      <div id="zk-question-display" style="padding:24px;max-width:900px;margin:0 auto;font-family:'Times New Roman',serif;font-size:1.1rem;line-height:1.7;color:#111;background:#fff;min-height:100%;position:relative">
+    <!-- Soru/Resim görüntüleme -->
+    <div id="zk-swipe-area" style="flex:1;overflow:auto;position:relative;-webkit-overflow-scrolling:touch;background:#e8e8e8">
+      <div id="zk-content-wrap" style="position:relative;margin:0 auto;max-width:960px">
+        <!-- Soru içeriği (HTML veya IMG) -->
+        <div id="zk-question-display" style="padding:24px;font-family:'Times New Roman',serif;font-size:1.1rem;line-height:1.7;color:#111;background:#fff;min-height:100vh;position:relative;box-shadow:0 0 20px rgba(0,0,0,.15)">
+        </div>
+        <!-- Fabric.js çizim katmanı — soru üzerinde tam boyut -->
+        <div id="zk-canvas-wrap" style="position:absolute;top:0;left:0;width:100%;height:100%;z-index:5;pointer-events:none">
+          <canvas id="zk-draw-canvas"></canvas>
+        </div>
       </div>
-      <!-- Çizim katmanı (soru üzerinde) -->
-      <canvas id="zk-draw-canvas" style="position:absolute;top:0;left:0;width:100%;height:100%;pointer-events:none;z-index:5"></canvas>
     </div>
 
     <!-- Sağ panel - Yazım Araçları -->
@@ -2315,47 +2342,65 @@ input, textarea, select, [contenteditable] {
         
         <div style="font-weight:700;font-size:.82rem;color:var(--text2);margin-bottom:4px">✏️ Yazım Araçları</div>
         
-        <!-- Mod seçimi -->
         <div style="display:flex;gap:4px">
-          <button class="zk-tool-btn active" id="zkt-pen" onclick="zkSetTool('pen')" data-tip="Kalem">✏️ Kalem</button>
-          <button class="zk-tool-btn" id="zkt-eraser" onclick="zkSetTool('eraser')" data-tip="Silgi">🧹 Silgi</button>
-          <button class="zk-tool-btn" id="zkt-highlight" onclick="zkSetTool('highlight')" data-tip="İşaretleyici">🖍️ İşaret</button>
+          <button class="zk-tool-btn active" id="zkt-pen" onclick="zkSetTool('pen')">✏️ Kalem</button>
+          <button class="zk-tool-btn" id="zkt-eraser" onclick="zkSetTool('eraser')">🧹 Silgi</button>
+          <button class="zk-tool-btn" id="zkt-highlight" onclick="zkSetTool('highlight')">🖍️ İşaret</button>
         </div>
 
-        <!-- Renk seçimi -->
         <div style="font-size:.72rem;color:var(--text3);font-weight:600;margin-top:4px">Renk</div>
         <div id="zk-colors" style="display:flex;gap:6px;flex-wrap:wrap">
-          <div class="zk-color-dot active" style="background:#222" onclick="zkSetColor('#222')"></div>
-          <div class="zk-color-dot" style="background:#ef4444" onclick="zkSetColor('#ef4444')"></div>
-          <div class="zk-color-dot" style="background:#3b82f6" onclick="zkSetColor('#3b82f6')"></div>
-          <div class="zk-color-dot" style="background:#10b981" onclick="zkSetColor('#10b981')"></div>
-          <div class="zk-color-dot" style="background:#f59e0b" onclick="zkSetColor('#f59e0b')"></div>
-          <div class="zk-color-dot" style="background:#8b5cf6" onclick="zkSetColor('#8b5cf6')"></div>
-          <div class="zk-color-dot" style="background:#ec4899" onclick="zkSetColor('#ec4899')"></div>
-          <div class="zk-color-dot" style="background:#fff;border:2px solid #ccc" onclick="zkSetColor('#ffffff')"></div>
+          <div class="zk-color-dot active" style="background:#222" onclick="zkSetColor('#222',this)"></div>
+          <div class="zk-color-dot" style="background:#ef4444" onclick="zkSetColor('#ef4444',this)"></div>
+          <div class="zk-color-dot" style="background:#3b82f6" onclick="zkSetColor('#3b82f6',this)"></div>
+          <div class="zk-color-dot" style="background:#10b981" onclick="zkSetColor('#10b981',this)"></div>
+          <div class="zk-color-dot" style="background:#f59e0b" onclick="zkSetColor('#f59e0b',this)"></div>
+          <div class="zk-color-dot" style="background:#8b5cf6" onclick="zkSetColor('#8b5cf6',this)"></div>
+          <div class="zk-color-dot" style="background:#ec4899" onclick="zkSetColor('#ec4899',this)"></div>
+          <div class="zk-color-dot" style="background:#fff;border:2px solid #ccc" onclick="zkSetColor('#ffffff',this)"></div>
         </div>
 
-        <!-- Kalınlık -->
         <div style="font-size:.72rem;color:var(--text3);font-weight:600;margin-top:4px">Kalınlık</div>
         <input type="range" id="zk-brush-size" min="1" max="20" value="3" style="width:100%;accent-color:var(--accent)" oninput="zkSetBrushSize(this.value)">
         <div style="display:flex;justify-content:space-between;font-size:.65rem;color:var(--text3)"><span>İnce</span><span id="zk-size-val">3</span><span>Kalın</span></div>
 
-        <!-- İşlemler -->
         <div class="sep" style="margin:6px 0"></div>
         <button class="btn btn-ghost btn-sm" onclick="zkUndo()" style="width:100%">↩️ Geri Al</button>
         <button class="btn btn-ghost btn-sm" onclick="zkClearDraw()" style="width:100%;color:var(--red)">🗑️ Çizimleri Sil</button>
         
         <div class="sep" style="margin:6px 0"></div>
-        <div style="font-size:.72rem;color:var(--text3);font-weight:600">Sayfa</div>
-        <button class="btn btn-ghost btn-sm" onclick="zkSaveDrawing()" style="width:100%">💾 Çizimi Kaydet</button>
-        <button class="btn btn-ghost btn-sm" onclick="zkExportImage()" style="width:100%">📷 Resim Olarak İndir</button>
+        <button class="btn btn-ghost btn-sm" onclick="zkExportImage()" style="width:100%">📷 Resim İndir</button>
 
-        <!-- Mini soru navigasyonu -->
         <div class="sep" style="margin:6px 0"></div>
         <div style="font-size:.72rem;color:var(--text3);font-weight:600">Sorular</div>
-        <div id="zk-mini-nav" style="display:flex;flex-wrap:wrap;gap:4px;max-height:120px;overflow-y:auto"></div>
+        <div id="zk-mini-nav" style="display:flex;flex-wrap:wrap;gap:4px;max-height:160px;overflow-y:auto"></div>
       </div>
     </div>
+  </div>
+</div>
+
+<!-- Z-KİTAP PDF KES OVERLAY -->
+<div id="zk-pdf-crop" style="display:none;position:fixed;inset:0;z-index:9000;background:rgba(0,0,0,.95);flex-direction:column">
+  <div style="height:48px;background:var(--bg2);border-bottom:1px solid var(--border);display:flex;align-items:center;padding:0 12px;gap:8px;flex-shrink:0">
+    <button class="icon-btn" onclick="zkPdfCropClose()">✕</button>
+    <span style="font-weight:700;font-size:.88rem;color:var(--text)">📄 PDF Soru Kesici</span>
+    <span id="zk-pdf-page-info" style="color:var(--text2);font-size:.78rem;margin-left:8px">Sayfa 1/1</span>
+    <div style="flex:1"></div>
+    <button class="icon-btn" onclick="zkPdfPrevPage()" data-tip="Önceki sayfa">◀</button>
+    <button class="icon-btn" onclick="zkPdfNextPage()" data-tip="Sonraki sayfa">▶</button>
+    <div class="we-div" style="height:24px"></div>
+    <span id="zk-crop-count" style="font-size:.78rem;color:var(--green);font-weight:700">0 soru kesildi</span>
+    <button class="btn btn-success btn-sm" onclick="zkPdfCropDone()">✅ Tamamla</button>
+  </div>
+  <div style="padding:8px 12px;background:var(--bg3);font-size:.78rem;color:var(--text2);flex-shrink:0;display:flex;align-items:center;gap:12px;flex-wrap:wrap">
+    <span>📌 PDF üzerinde fare ile dikdörtgen çizerek soruları kesin.</span>
+    <span>Her kesim bir soru kartı olur.</span>
+    <button class="btn btn-ghost btn-xs" onclick="zkPdfUndoCrop()">↩️ Son Kesimi Geri Al</button>
+  </div>
+  <div id="zk-pdf-canvas-wrap" style="flex:1;overflow:auto;display:flex;justify-content:center;padding:16px;position:relative;cursor:crosshair">
+    <canvas id="zk-pdf-canvas" style="box-shadow:0 4px 24px rgba(0,0,0,.5);max-width:100%"></canvas>
+    <!-- Seçim dikdörtgeni -->
+    <div id="zk-crop-rect" style="display:none;position:absolute;border:2px dashed #ef4444;background:rgba(239,68,68,.12);z-index:10;pointer-events:none"></div>
   </div>
 </div>
 
@@ -11488,11 +11533,11 @@ if(document.readyState === 'loading'){
 // ============================================================
 // Z-KİTAP SİSTEMİ
 // ============================================================
-let zkQuestions = [];       // Yüklenen sorular
-let zkCurrentIdx = 0;       // Aktif soru indeksi
-let zkFabricCanvas = null;  // Fabric.js canvas
-let zkPanelOpen = false;    // Sağ panel açık mı
-let zkDrawingMode = false;  // Çizim modu aktif mi
+let zkQuestions = [];       // [{id, type:'img'|'html', src, text, ...}]
+let zkCurrentIdx = 0;
+let zkFabricCanvas = null;
+let zkPanelOpen = false;
+let zkDrawingMode = false;
 let zkCurrentTool = 'pen';
 let zkCurrentColor = '#222';
 let zkBrushSize = 3;
@@ -11501,7 +11546,15 @@ let zkSwipeStartX = 0;
 let zkSwipeStartY = 0;
 const ZK_STORAGE_KEY = 'zkitap_drawings_';
 
-// ---- DOSYA YÜKLEME ----
+// PDF state
+let zkPdfDoc = null;
+let zkPdfPage = 1;
+let zkPdfTotalPages = 0;
+let zkPdfCrops = []; // [{dataUrl, page, rect}]
+let zkCropDragging = false;
+let zkCropStart = {x:0, y:0};
+
+// ==== DOSYA YÜKLEME (KLB/JSON) ====
 function zkLoadFile(){
   const input = document.createElement('input');
   input.type = 'file';
@@ -11516,26 +11569,14 @@ function zkLoadFile(){
       reader.onload = function(ev){
         try {
           const data = klbDecode(ev.target.result);
-          let qs = [];
-          if(data.type === 'worksheet' && data.calismaQuestions){
-            qs = data.calismaQuestions;
-          } else if(data.type === 'exam-group' && data.questions){
-            qs = data.questions;
-          } else if(data.questions){
-            qs = data.questions;
-          } else if(data.calismaQuestions){
-            qs = data.calismaQuestions;
-          }
+          let qs = data.calismaQuestions || data.questions || [];
           if(!qs.length){ klbToast('⚠️ Dosyada soru bulunamadı!','error'); return; }
-          zkQuestions = qs;
+          zkQuestions = qs.map((q,i) => ({...q, _zkType:'html', id: q.id||('zk_'+i)}));
           zkRenderCards();
-          const name = data.fileName || data.groupName || file.name.replace(/\.[^.]+$/,'');
-          H('zkitap-title').textContent = '📖 ' + name;
-          H('zkitap-meta').textContent = qs.filter(q=>q.type!=='section').length + ' soru yüklendi';
-          klbToast('✅ Z-Kitap yüklendi: ' + qs.length + ' soru', 'success');
-        } catch(err){
-          klbToast('❌ Dosya okunamadı: ' + err.message, 'error');
-        }
+          H('zkitap-title').textContent = '📖 ' + (data.fileName || data.groupName || file.name);
+          H('zkitap-meta').textContent = zkQuestions.filter(q=>q.type!=='section').length + ' soru';
+          klbToast('✅ ' + zkQuestions.length + ' soru yüklendi', 'success');
+        } catch(err){ klbToast('❌ ' + err.message, 'error'); }
       };
       reader.readAsText(file);
     } else if(ext === 'db'){
@@ -11543,42 +11584,36 @@ function zkLoadFile(){
         try {
           const buf = ev.target.result;
           const zipFiles = parseZipEntries(new Uint8Array(buf));
-          if(!zipFiles['config.json']){ klbToast('⚠️ Geçersiz .db dosyası!','error'); return; }
+          if(!zipFiles['config.json']){ klbToast('⚠️ Geçersiz .db!','error'); return; }
           const config = JSON.parse(new TextDecoder('utf-8').decode(zipFiles['config.json']));
-          if(!config.questions || !config.questions.length){ klbToast('⚠️ Soru bulunamadı!','error'); return; }
-          const converted = [];
-          config.questions.forEach(function(extQ, idx){
-            let editorHtml = (extQ.editor && extQ.editor.html) ? extQ.editor.html : '';
+          if(!config.questions?.length){ klbToast('⚠️ Soru yok!','error'); return; }
+          zkQuestions = config.questions.map((extQ, idx) => {
+            let html = extQ.editor?.html || '';
             const rid = extQ.randomid || '';
-            if(!editorHtml && rid && zipFiles[rid+'.jpg']){
+            if(!html && rid && zipFiles[rid+'.jpg']){
               const b64 = uint8ToBase64(zipFiles[rid+'.jpg']);
-              editorHtml = '<p><img src="data:image/jpeg;base64,'+b64+'" style="max-width:100%"></p>';
+              html = '<img src="data:image/jpeg;base64,'+b64+'" style="max-width:100%">';
             }
-            converted.push({
-              id:'zk_'+Date.now()+'_'+idx, type:'open', text:editorHtml,
-              puan:Math.round((extQ.multiplier||1)*10), bosluk:0, options:{}, correct:'', images:[], fullwidth:false
-            });
+            return {id:'zk_'+Date.now()+'_'+idx, _zkType:'html', type:'open', text:html, options:{}, images:[]};
           });
-          zkQuestions = converted;
           zkRenderCards();
-          H('zkitap-title').textContent = '📖 ' + file.name.replace(/\.db$/i,'');
-          H('zkitap-meta').textContent = converted.length + ' soru yüklendi';
-          klbToast('✅ Z-Kitap yüklendi: ' + converted.length + ' soru', 'success');
+          H('zkitap-title').textContent = '📖 ' + file.name.replace(/\.[^.]+$/,'');
+          H('zkitap-meta').textContent = zkQuestions.length + ' soru';
+          klbToast('✅ ' + zkQuestions.length + ' soru yüklendi', 'success');
         } catch(err){ klbToast('❌ ' + err.message, 'error'); }
       };
       reader.readAsArrayBuffer(file);
     } else {
-      // JSON / KDB
       reader.onload = function(ev){
         try {
           const data = JSON.parse(ev.target.result);
           let qs = data.calismaQuestions || data.questions || data.data?.calismaQuestions || data.data?.questions || [];
-          if(!qs.length){ klbToast('⚠️ Soru bulunamadı!','error'); return; }
-          zkQuestions = qs;
+          if(!qs.length){ klbToast('⚠️ Soru yok!','error'); return; }
+          zkQuestions = qs.map((q,i) => ({...q, _zkType:'html', id: q.id||('zk_'+i)}));
           zkRenderCards();
-          H('zkitap-title').textContent = '📖 ' + (data.fileName || file.name.replace(/\.[^.]+$/,''));
-          H('zkitap-meta').textContent = qs.filter(q=>q.type!=='section').length + ' soru yüklendi';
-          klbToast('✅ Z-Kitap yüklendi!', 'success');
+          H('zkitap-title').textContent = '📖 ' + (data.fileName || file.name);
+          H('zkitap-meta').textContent = zkQuestions.filter(q=>q.type!=='section').length + ' soru';
+          klbToast('✅ Yüklendi!', 'success');
         } catch(err){ klbToast('❌ ' + err.message, 'error'); }
       };
       reader.readAsText(file);
@@ -11588,14 +11623,12 @@ function zkLoadFile(){
 }
 
 function zkLoadFromCalisma(){
-  if(!db.calismaQuestions || !db.calismaQuestions.length){
-    klbToast('⚠️ Çalışma kağıdında soru yok!','error'); return;
-  }
-  zkQuestions = JSON.parse(JSON.stringify(db.calismaQuestions));
+  if(!db.calismaQuestions?.length){ klbToast('⚠️ Çalışma kağıdında soru yok!','error'); return; }
+  zkQuestions = JSON.parse(JSON.stringify(db.calismaQuestions)).map((q,i) => ({...q, _zkType:'html', id: q.id||('zk_'+i)}));
   zkRenderCards();
   H('zkitap-title').textContent = '📖 ' + (currentCalismaName || 'Çalışma Kağıdı');
-  H('zkitap-meta').textContent = zkQuestions.filter(q=>q.type!=='section').length + ' soru yüklendi';
-  klbToast('✅ Çalışma kağıdından ' + zkQuestions.length + ' soru alındı', 'success');
+  H('zkitap-meta').textContent = zkQuestions.filter(q=>q.type!=='section').length + ' soru';
+  klbToast('✅ ' + zkQuestions.length + ' soru alındı', 'success');
 }
 
 function zkClearAll(){
@@ -11607,87 +11640,285 @@ function zkClearAll(){
   H('zkitap-meta').textContent = 'Dosya yükleyerek başlayın';
 }
 
-// ---- KART RENDER ----
+// ==== PDF YÜKLEME ====
+function zkLoadPDF(){
+  const input = document.createElement('input');
+  input.type = 'file';
+  input.accept = '.pdf';
+  input.onchange = async function(e){
+    const file = e.target.files[0];
+    if(!file) return;
+    try {
+      const buf = await file.arrayBuffer();
+      zkPdfDoc = await pdfjsLib.getDocument({data: buf}).promise;
+      zkPdfTotalPages = zkPdfDoc.numPages;
+      zkPdfPage = 1;
+      zkPdfCrops = [];
+      H('zk-pdf-crop').style.display = 'flex';
+      document.body.style.overflow = 'hidden';
+      zkPdfRenderPage();
+      zkPdfUpdateInfo();
+      klbToast('📄 PDF açıldı: ' + zkPdfTotalPages + ' sayfa', 'success');
+    } catch(err){
+      klbToast('❌ PDF açılamadı: ' + err.message, 'error');
+    }
+  };
+  input.click();
+}
+
+async function zkPdfRenderPage(){
+  if(!zkPdfDoc) return;
+  const page = await zkPdfDoc.getPage(zkPdfPage);
+  const scale = 2; // Yüksek çözünürlük
+  const viewport = page.getViewport({scale});
+  const canvas = H('zk-pdf-canvas');
+  canvas.width = viewport.width;
+  canvas.height = viewport.height;
+  const ctx = canvas.getContext('2d');
+  await page.render({canvasContext: ctx, viewport}).promise;
+  
+  // Mevcut kesim overlay'lerini çiz
+  zkPdfDrawCropOverlays(ctx);
+}
+
+function zkPdfDrawCropOverlays(ctx){
+  const canvas = H('zk-pdf-canvas');
+  zkPdfCrops.forEach((crop, idx) => {
+    if(crop.page !== zkPdfPage) return;
+    ctx.strokeStyle = '#10b981';
+    ctx.lineWidth = 3;
+    ctx.setLineDash([6, 4]);
+    ctx.strokeRect(crop.rect.x, crop.rect.y, crop.rect.w, crop.rect.h);
+    ctx.setLineDash([]);
+    // Numara
+    ctx.fillStyle = 'rgba(16,185,129,0.85)';
+    ctx.fillRect(crop.rect.x, crop.rect.y, 28, 20);
+    ctx.fillStyle = '#fff';
+    ctx.font = 'bold 13px sans-serif';
+    ctx.fillText(String(idx+1), crop.rect.x+6, crop.rect.y+15);
+  });
+}
+
+function zkPdfPrevPage(){
+  if(zkPdfPage <= 1) return;
+  zkPdfPage--;
+  zkPdfRenderPage();
+  zkPdfUpdateInfo();
+}
+function zkPdfNextPage(){
+  if(zkPdfPage >= zkPdfTotalPages) return;
+  zkPdfPage++;
+  zkPdfRenderPage();
+  zkPdfUpdateInfo();
+}
+function zkPdfUpdateInfo(){
+  H('zk-pdf-page-info').textContent = 'Sayfa ' + zkPdfPage + '/' + zkPdfTotalPages;
+  H('zk-crop-count').textContent = zkPdfCrops.length + ' soru kesildi';
+}
+
+// PDF üzerinde fare ile dikdörtgen seçimi
+(function(){
+  let started = false, sx=0, sy=0;
+  
+  function getPos(e, canvas){
+    const rect = canvas.getBoundingClientRect();
+    const scaleX = canvas.width / rect.width;
+    const scaleY = canvas.height / rect.height;
+    const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+    const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+    return {x: (clientX - rect.left) * scaleX, y: (clientY - rect.top) * scaleY};
+  }
+  
+  document.addEventListener('DOMContentLoaded', function(){
+    const wrap = document.getElementById('zk-pdf-canvas-wrap');
+    if(!wrap) return;
+    
+    wrap.addEventListener('mousedown', startCrop);
+    wrap.addEventListener('touchstart', startCrop, {passive:false});
+    wrap.addEventListener('mousemove', moveCrop);
+    wrap.addEventListener('touchmove', moveCrop, {passive:false});
+    wrap.addEventListener('mouseup', endCrop);
+    wrap.addEventListener('touchend', endCrop);
+    
+    function startCrop(e){
+      const canvas = document.getElementById('zk-pdf-canvas');
+      if(!canvas || !zkPdfDoc) return;
+      if(e.touches) e.preventDefault();
+      const pos = getPos(e, canvas);
+      sx = pos.x; sy = pos.y;
+      started = true;
+      const r = document.getElementById('zk-crop-rect');
+      r.style.display = 'block';
+    }
+    
+    function moveCrop(e){
+      if(!started) return;
+      if(e.touches) e.preventDefault();
+      const canvas = document.getElementById('zk-pdf-canvas');
+      const pos = getPos(e, canvas);
+      const rect = canvas.getBoundingClientRect();
+      const scaleX = rect.width / canvas.width;
+      const scaleY = rect.height / canvas.height;
+      const r = document.getElementById('zk-crop-rect');
+      const cx = Math.min(sx, pos.x), cy = Math.min(sy, pos.y);
+      const cw = Math.abs(pos.x - sx), ch = Math.abs(pos.y - sy);
+      r.style.left = (canvas.offsetLeft + cx * scaleX) + 'px';
+      r.style.top = (canvas.offsetTop + cy * scaleY) + 'px';
+      r.style.width = (cw * scaleX) + 'px';
+      r.style.height = (ch * scaleY) + 'px';
+    }
+    
+    function endCrop(e){
+      if(!started) return;
+      started = false;
+      const canvas = document.getElementById('zk-pdf-canvas');
+      const r = document.getElementById('zk-crop-rect');
+      r.style.display = 'none';
+      
+      const pos = getPos(e.changedTouches ? e.changedTouches[0] : e, canvas);
+      const x = Math.min(sx, pos.x), y = Math.min(sy, pos.y);
+      const w = Math.abs(pos.x - sx), h = Math.abs(pos.y - sy);
+      
+      // Minimum boyut kontrolü
+      if(w < 30 || h < 30) return;
+      
+      // Crop alanını kes
+      const cropCanvas = document.createElement('canvas');
+      cropCanvas.width = w;
+      cropCanvas.height = h;
+      const cropCtx = cropCanvas.getContext('2d');
+      cropCtx.drawImage(canvas, x, y, w, h, 0, 0, w, h);
+      const dataUrl = cropCanvas.toDataURL('image/png');
+      
+      zkPdfCrops.push({dataUrl, page: zkPdfPage, rect:{x,y,w,h}});
+      zkPdfUpdateInfo();
+      zkPdfRenderPage(); // Overlay'leri güncelle
+      
+      klbToast('✂️ Soru ' + zkPdfCrops.length + ' kesildi', 'success');
+    }
+  });
+})();
+
+function zkPdfUndoCrop(){
+  if(!zkPdfCrops.length) return;
+  zkPdfCrops.pop();
+  zkPdfUpdateInfo();
+  zkPdfRenderPage();
+  klbToast('↩️ Son kesim geri alındı', 'success');
+}
+
+function zkPdfCropDone(){
+  if(!zkPdfCrops.length){
+    klbToast('⚠️ Henüz soru kesilmedi!','error'); return;
+  }
+  // Crop'ları Z-Kitap sorularına dönüştür
+  const newQs = zkPdfCrops.map((crop, idx) => ({
+    id: 'zkpdf_' + Date.now() + '_' + idx,
+    _zkType: 'img',
+    type: 'open',
+    _imgSrc: crop.dataUrl,
+    text: '',
+    options: {},
+    images: []
+  }));
+  zkQuestions = zkQuestions.concat(newQs);
+  zkRenderCards();
+  H('zkitap-meta').textContent = zkQuestions.length + ' soru';
+  zkPdfCropClose();
+  klbToast('✅ ' + newQs.length + ' soru Z-Kitap\'a eklendi!', 'success');
+}
+
+function zkPdfCropClose(){
+  H('zk-pdf-crop').style.display = 'none';
+  document.body.style.overflow = '';
+  zkPdfDoc = null;
+}
+
+// ==== KART RENDER ====
 function zkRenderCards(){
   const wrap = H('zk-cards-wrap');
   const empty = H('zk-empty');
   if(!zkQuestions.length){
     wrap.innerHTML = '';
-    empty.style.display = 'block';
+    if(empty) empty.style.display = 'block';
     return;
   }
-  empty.style.display = 'none';
+  if(empty) empty.style.display = 'none';
   let qNum = 0;
   wrap.innerHTML = zkQuestions.map((q, idx) => {
     if(q.type === 'section'){
-      return '<div class="zk-card" style="grid-column:1/-1;height:auto;cursor:default;background:linear-gradient(90deg,rgba(245,158,11,.08),transparent);border-color:rgba(245,158,11,.25)" onclick="zkOpen('+idx+')">' +
-        '<div class="zk-card-num"><span class="zk-badge sec">📌 Bölüm</span> <span style="font-weight:800;color:var(--amber)">' + (q.title||'Bölüm') + '</span></div></div>';
+      return '<div class="zk-card" style="grid-column:1/-1;height:auto;cursor:pointer;background:linear-gradient(90deg,rgba(245,158,11,.08),transparent);border-color:rgba(245,158,11,.25)" onclick="zkOpen('+idx+')">' +
+        '<div class="zk-card-num"><span class="zk-badge sec">📌</span> <span style="font-weight:800;color:var(--amber)">'+(q.title||'Bölüm')+'</span></div></div>';
     }
     qNum++;
     const hasDraw = zkHasDrawing(idx);
-    const typeBadge = q.type==='mc' ? '<span class="zk-badge mc">Çoktan Seçmeli</span>' : 
-                      q.type==='fill' ? '<span class="zk-badge fill">Boşluk Doldurma</span>' :
-                      '<span class="zk-badge open">Açık Uçlu</span>';
     const drawIcon = hasDraw ? '<span class="zk-draw-indicator">✏️</span>' : '';
-    // Metin önizleme
+    
+    if(q._zkType === 'img' && q._imgSrc){
+      // PDF'den kesilmiş resim kartı
+      return '<div class="zk-card'+(hasDraw?' has-drawing':'')+'" onclick="zkOpen('+idx+')">' +
+        '<div class="zk-card-num">S.'+qNum+' <span class="zk-badge open">PDF</span>'+drawIcon+'</div>' +
+        '<div class="zk-card-img"><img src="'+q._imgSrc+'"></div></div>';
+    }
+    
+    // HTML soru kartı
+    const typeBadge = q.type==='mc' ? '<span class="zk-badge mc">ÇS</span>' : 
+                      q.type==='fill' ? '<span class="zk-badge fill">BD</span>' :
+                      '<span class="zk-badge open">AÇ</span>';
     let preview = (q.text||'').replace(/<[^>]+>/g,' ').replace(/&nbsp;/g,' ').trim();
-    if(preview.length > 120) preview = preview.substring(0,120) + '...';
-    if(!preview) preview = '<span style="opacity:.4">Boş soru</span>';
+    if(preview.length > 100) preview = preview.substring(0,100) + '...';
+    if(!preview) preview = '<span style="opacity:.4">Boş</span>';
     
     return '<div class="zk-card'+(hasDraw?' has-drawing':'')+'" onclick="zkOpen('+idx+')">' +
-      '<div class="zk-card-num">S.' + qNum + ' ' + typeBadge + drawIcon + '</div>' +
-      '<div class="zk-card-body">' + preview + '</div></div>';
+      '<div class="zk-card-num">S.'+qNum+' '+typeBadge+drawIcon+'</div>' +
+      '<div class="zk-card-body">'+preview+'</div></div>';
   }).join('');
 }
 
 function zkHasDrawing(idx){
-  try {
-    const key = ZK_STORAGE_KEY + zkGetDrawKey(idx);
-    return !!localStorage.getItem(key);
-  } catch(e){ return false; }
+  try { return !!localStorage.getItem(ZK_STORAGE_KEY + zkGetDrawKey(idx)); } catch(e){ return false; }
 }
-
 function zkGetDrawKey(idx){
   const q = zkQuestions[idx];
-  return (q && q.id) ? q.id : 'idx_'+idx;
+  return q?.id || ('idx_'+idx);
 }
 
-// ---- TAM EKRAN AÇ/KAPA ----
+// ==== TAM EKRAN ====
 function zkOpen(idx){
   if(!zkQuestions.length) return;
   zkCurrentIdx = idx;
-  const fs = H('zk-fullscreen');
-  fs.style.display = 'flex';
+  H('zk-fullscreen').style.display = 'flex';
   document.body.style.overflow = 'hidden';
   zkRenderQuestion();
-  zkInitCanvas();
-  zkLoadDrawing();
+  setTimeout(() => {
+    zkInitCanvas();
+    zkLoadDrawing();
+  }, 150);
   zkUpdateMiniNav();
-  // Swipe listener
+  
+  // Swipe
   const area = H('zk-swipe-area');
+  area.removeEventListener('touchstart', zkTouchStart);
+  area.removeEventListener('touchend', zkTouchEnd);
   area.addEventListener('touchstart', zkTouchStart, {passive:true});
   area.addEventListener('touchend', zkTouchEnd, {passive:true});
 }
 
 function zkClose(){
-  zkSaveDrawing(); // Otomatik kaydet
-  const fs = H('zk-fullscreen');
-  fs.style.display = 'none';
+  zkSaveDrawing();
+  H('zk-fullscreen').style.display = 'none';
   document.body.style.overflow = '';
-  if(zkFabricCanvas){
-    zkFabricCanvas.dispose();
-    zkFabricCanvas = null;
-  }
+  if(zkFabricCanvas){ zkFabricCanvas.dispose(); zkFabricCanvas = null; }
   zkPanelOpen = false;
+  zkDrawingMode = false;
   H('zk-panel').style.width = '0';
-  zkRenderCards(); // Çizim göstergelerini güncelle
+  zkRenderCards();
 }
 
-// ---- SORU RENDER (TAM EKRAN) ----
+// ==== SORU RENDER ====
 function zkRenderQuestion(){
   const q = zkQuestions[zkCurrentIdx];
   if(!q) return;
-  
   const display = H('zk-question-display');
   const allReal = zkQuestions.filter(x => x.type !== 'section');
   const realIdx = allReal.indexOf(q);
@@ -11695,75 +11926,71 @@ function zkRenderQuestion(){
   if(q.type === 'section'){
     display.innerHTML = '<div class="zk-q-section">' + (q.title||'Bölüm') + '</div>';
     H('zk-q-indicator').textContent = '📌 ' + (q.title||'Bölüm');
+  } else if(q._zkType === 'img' && q._imgSrc){
+    // PDF'den kesilmiş resim
+    display.innerHTML = '<div style="text-align:center;padding:12px 0"><img src="'+q._imgSrc+'" style="max-width:100%;height:auto;border:1px solid #ddd;border-radius:6px"></div>';
+    H('zk-q-indicator').textContent = (realIdx+1) + ' / ' + allReal.length;
   } else {
     let html = '<div style="margin-bottom:16px;font-weight:800;font-size:1.3rem;color:#4f46e5">Soru ' + (realIdx+1) + '</div>';
     html += '<div class="zk-q-text">' + (q.text||'<i style="opacity:.4">Soru metni boş</i>') + '</div>';
-    
-    // Şıklar
     if(q.type === 'mc' && !q.siklarResimde){
       html += '<div class="zk-q-opts">';
       ['A','B','C','D','E'].forEach(k => {
-        if(q.options && q.options[k]){
-          html += '<div class="zk-q-opt"><b>'+k+')</b> <span>'+q.options[k]+'</span></div>';
-        }
+        if(q.options?.[k]) html += '<div class="zk-q-opt"><b>'+k+')</b> <span>'+q.options[k]+'</span></div>';
       });
       html += '</div>';
     }
-    
-    // Görseller
-    if(q.images && q.images.length){
+    if(q.images?.length){
       html += '<div class="zk-q-images">';
-      q.images.forEach(src => {
-        html += '<img src="'+src+'" style="max-width:100%">';
-      });
+      q.images.forEach(src => html += '<img src="'+src+'" style="max-width:100%">');
       html += '</div>';
     }
-    
     display.innerHTML = html;
     H('zk-q-indicator').textContent = (realIdx+1) + ' / ' + allReal.length;
   }
-  // Scroll'u sıfırla
   H('zk-swipe-area').scrollTop = 0;
-  
-  // Canvas boyutu güncelle
-  setTimeout(() => zkResizeCanvas(), 100);
 }
 
-// ---- FABRIC.JS CANVAS ----
+// ==== FABRIC.JS CANVAS ====
 function zkInitCanvas(){
-  const canvasEl = H('zk-draw-canvas');
-  if(zkFabricCanvas){
-    zkFabricCanvas.dispose();
-  }
+  if(zkFabricCanvas){ zkFabricCanvas.dispose(); zkFabricCanvas = null; }
   
-  zkResizeCanvas();
+  const wrap = H('zk-content-wrap');
+  const canvasWrap = H('zk-canvas-wrap');
+  const canvasEl = H('zk-draw-canvas');
+  
+  const w = wrap.offsetWidth;
+  const h = wrap.offsetHeight;
+  canvasEl.width = w;
+  canvasEl.height = h;
+  canvasWrap.style.width = w + 'px';
+  canvasWrap.style.height = h + 'px';
   
   zkFabricCanvas = new fabric.Canvas('zk-draw-canvas', {
     isDrawingMode: false,
     selection: false,
     backgroundColor: 'transparent',
-    allowTouchScrolling: true
+    allowTouchScrolling: true,
+    width: w,
+    height: h
   });
   
   zkFabricCanvas.freeDrawingBrush = new fabric.PencilBrush(zkFabricCanvas);
   zkFabricCanvas.freeDrawingBrush.color = zkCurrentColor;
   zkFabricCanvas.freeDrawingBrush.width = zkBrushSize;
   
-  // Canvas tıklanamaz başlasın (panel açılınca aktif olacak)
-  canvasEl.style.pointerEvents = 'none';
+  // Başlangıçta çizim kapalı
+  canvasWrap.style.pointerEvents = 'none';
 }
 
 function zkResizeCanvas(){
-  const canvasEl = H('zk-draw-canvas');
-  const area = H('zk-swipe-area');
-  const content = H('zk-question-display');
-  // Canvas boyutunu içeriğe eşitle
-  const w = area.clientWidth;
-  const h = Math.max(content.scrollHeight, area.clientHeight);
-  canvasEl.width = w;
-  canvasEl.height = h;
-  canvasEl.style.width = w + 'px';
-  canvasEl.style.height = h + 'px';
+  const wrap = H('zk-content-wrap');
+  const canvasWrap = H('zk-canvas-wrap');
+  if(!wrap || !canvasWrap) return;
+  const w = wrap.offsetWidth;
+  const h = wrap.offsetHeight;
+  canvasWrap.style.width = w + 'px';
+  canvasWrap.style.height = h + 'px';
   if(zkFabricCanvas){
     zkFabricCanvas.setWidth(w);
     zkFabricCanvas.setHeight(h);
@@ -11771,120 +11998,91 @@ function zkResizeCanvas(){
   }
 }
 
-// ---- PANEL TOGGLE ----
+// ==== PANEL ====
 function zkTogglePanel(){
   zkPanelOpen = !zkPanelOpen;
   const panel = H('zk-panel');
-  const canvasEl = H('zk-draw-canvas');
-  const toggleBtn = H('zk-pen-toggle');
+  const canvasWrap = H('zk-canvas-wrap');
+  const btn = H('zk-pen-toggle');
   
   if(zkPanelOpen){
     panel.style.width = '220px';
-    canvasEl.style.pointerEvents = 'auto';
+    canvasWrap.style.pointerEvents = 'auto';
     if(zkFabricCanvas) zkFabricCanvas.isDrawingMode = true;
-    toggleBtn.style.background = 'var(--accent-glow)';
-    toggleBtn.style.borderColor = 'var(--accent)';
+    btn.style.background = 'var(--accent-glow)';
+    btn.style.borderColor = 'var(--accent)';
     zkDrawingMode = true;
-    // Swipe devre dışı çizim modunda
-    H('zk-swipe-area').style.touchAction = 'none';
   } else {
     panel.style.width = '0';
-    canvasEl.style.pointerEvents = 'none';
+    canvasWrap.style.pointerEvents = 'none';
     if(zkFabricCanvas) zkFabricCanvas.isDrawingMode = false;
-    toggleBtn.style.background = '';
-    toggleBtn.style.borderColor = '';
+    btn.style.background = '';
+    btn.style.borderColor = '';
     zkDrawingMode = false;
-    H('zk-swipe-area').style.touchAction = 'pan-y';
   }
   setTimeout(() => zkResizeCanvas(), 350);
 }
 
-// ---- ARAÇ SEÇİMİ ----
+// ==== ARAÇLAR ====
 function zkSetTool(tool){
   zkCurrentTool = tool;
   document.querySelectorAll('.zk-tool-btn').forEach(b => b.classList.remove('active'));
-  H('zkt-'+tool).classList.add('active');
-  
+  const el = H('zkt-'+tool);
+  if(el) el.classList.add('active');
   if(!zkFabricCanvas) return;
   
+  zkFabricCanvas.freeDrawingBrush = new fabric.PencilBrush(zkFabricCanvas);
   if(tool === 'eraser'){
-    zkFabricCanvas.freeDrawingBrush = new fabric.PencilBrush(zkFabricCanvas);
     zkFabricCanvas.freeDrawingBrush.color = '#ffffff';
     zkFabricCanvas.freeDrawingBrush.width = zkBrushSize * 3;
   } else if(tool === 'highlight'){
-    zkFabricCanvas.freeDrawingBrush = new fabric.PencilBrush(zkFabricCanvas);
-    const c = zkCurrentColor;
-    // Yarı saydam renk
-    zkFabricCanvas.freeDrawingBrush.color = c + '40';
+    zkFabricCanvas.freeDrawingBrush.color = zkCurrentColor + '40';
     zkFabricCanvas.freeDrawingBrush.width = zkBrushSize * 4;
   } else {
-    zkFabricCanvas.freeDrawingBrush = new fabric.PencilBrush(zkFabricCanvas);
     zkFabricCanvas.freeDrawingBrush.color = zkCurrentColor;
     zkFabricCanvas.freeDrawingBrush.width = zkBrushSize;
   }
-  if(zkFabricCanvas.isDrawingMode) zkFabricCanvas.isDrawingMode = true;
+  if(zkDrawingMode) zkFabricCanvas.isDrawingMode = true;
 }
 
-function zkSetColor(color){
+function zkSetColor(color, el){
   zkCurrentColor = color;
   document.querySelectorAll('.zk-color-dot').forEach(d => d.classList.remove('active'));
-  event.target.classList.add('active');
-  if(zkCurrentTool !== 'eraser'){
-    zkSetTool(zkCurrentTool); // Fırçayı güncelle
-  }
+  if(el) el.classList.add('active');
+  if(zkCurrentTool !== 'eraser') zkSetTool(zkCurrentTool);
 }
 
 function zkSetBrushSize(val){
   zkBrushSize = parseInt(val);
   H('zk-size-val').textContent = val;
-  if(zkFabricCanvas && zkFabricCanvas.freeDrawingBrush){
-    if(zkCurrentTool === 'eraser'){
-      zkFabricCanvas.freeDrawingBrush.width = zkBrushSize * 3;
-    } else if(zkCurrentTool === 'highlight'){
-      zkFabricCanvas.freeDrawingBrush.width = zkBrushSize * 4;
-    } else {
-      zkFabricCanvas.freeDrawingBrush.width = zkBrushSize;
-    }
+  if(zkFabricCanvas?.freeDrawingBrush){
+    const mult = zkCurrentTool === 'eraser' ? 3 : zkCurrentTool === 'highlight' ? 4 : 1;
+    zkFabricCanvas.freeDrawingBrush.width = zkBrushSize * mult;
   }
 }
 
-// ---- GERİ AL ----
 function zkUndo(){
   if(!zkFabricCanvas) return;
   const objs = zkFabricCanvas.getObjects();
-  if(objs.length > 0){
-    zkFabricCanvas.remove(objs[objs.length - 1]);
-    zkFabricCanvas.renderAll();
-  }
+  if(objs.length) { zkFabricCanvas.remove(objs[objs.length-1]); zkFabricCanvas.renderAll(); }
 }
 
 function zkClearDraw(){
   if(!zkFabricCanvas) return;
-  if(!confirm('Bu sorunun tüm çizimleri silinsin mi?')) return;
+  if(!confirm('Çizimler silinsin mi?')) return;
   zkFabricCanvas.clear();
   zkFabricCanvas.backgroundColor = 'transparent';
   zkFabricCanvas.renderAll();
-  // localStorage'dan da sil
-  try {
-    localStorage.removeItem(ZK_STORAGE_KEY + zkGetDrawKey(zkCurrentIdx));
-  } catch(e){}
+  try { localStorage.removeItem(ZK_STORAGE_KEY + zkGetDrawKey(zkCurrentIdx)); } catch(e){}
 }
 
-// ---- ÇİZİM KAYDET/YÜKLE (localStorage) ----
+// ==== KAYDET/YÜKLE ====
 function zkSaveDrawing(){
   if(!zkFabricCanvas) return;
   const key = ZK_STORAGE_KEY + zkGetDrawKey(zkCurrentIdx);
   const objs = zkFabricCanvas.getObjects();
-  if(objs.length === 0){
-    try { localStorage.removeItem(key); } catch(e){}
-    return;
-  }
-  try {
-    const json = JSON.stringify(zkFabricCanvas.toJSON());
-    localStorage.setItem(key, json);
-  } catch(e){
-    console.warn('Z-Kitap çizim kaydedilemedi:', e);
-  }
+  if(!objs.length){ try{localStorage.removeItem(key);}catch(e){} return; }
+  try { localStorage.setItem(key, JSON.stringify(zkFabricCanvas.toJSON())); } catch(e){}
 }
 
 function zkLoadDrawing(){
@@ -11900,124 +12098,83 @@ function zkLoadDrawing(){
     } else {
       zkFabricCanvas.clear();
       zkFabricCanvas.backgroundColor = 'transparent';
-      zkFabricCanvas.renderAll();
     }
-  } catch(e){
-    zkFabricCanvas.clear();
-    zkFabricCanvas.backgroundColor = 'transparent';
-  }
+  } catch(e){ zkFabricCanvas.clear(); zkFabricCanvas.backgroundColor = 'transparent'; }
 }
 
-// ---- NAVIGASYON ----
-function zkPrev(){
-  if(zkCurrentIdx <= 0) return;
-  zkSaveDrawing();
-  zkCurrentIdx--;
+// ==== NAVİGASYON ====
+function zkPrev(){ if(zkCurrentIdx<=0)return; zkSaveDrawing(); zkCurrentIdx--; zkGo(); }
+function zkNext(){ if(zkCurrentIdx>=zkQuestions.length-1)return; zkSaveDrawing(); zkCurrentIdx++; zkGo(); }
+function zkGoTo(idx){ if(idx<0||idx>=zkQuestions.length)return; zkSaveDrawing(); zkCurrentIdx=idx; zkGo(); }
+
+function zkGo(){
   zkRenderQuestion();
-  zkLoadDrawing();
+  setTimeout(() => { zkResizeCanvas(); zkLoadDrawing(); }, 100);
   zkUpdateMiniNav();
 }
 
-function zkNext(){
-  if(zkCurrentIdx >= zkQuestions.length - 1) return;
-  zkSaveDrawing();
-  zkCurrentIdx++;
-  zkRenderQuestion();
-  zkLoadDrawing();
-  zkUpdateMiniNav();
-}
-
-function zkGoTo(idx){
-  if(idx < 0 || idx >= zkQuestions.length) return;
-  zkSaveDrawing();
-  zkCurrentIdx = idx;
-  zkRenderQuestion();
-  zkLoadDrawing();
-  zkUpdateMiniNav();
-}
-
-// ---- SWIPE ----
-function zkTouchStart(e){
-  if(zkDrawingMode) return;
-  zkSwipeStartX = e.changedTouches[0].clientX;
-  zkSwipeStartY = e.changedTouches[0].clientY;
-}
-
+// Swipe
+function zkTouchStart(e){ if(zkDrawingMode)return; zkSwipeStartX=e.changedTouches[0].clientX; zkSwipeStartY=e.changedTouches[0].clientY; }
 function zkTouchEnd(e){
-  if(zkDrawingMode) return;
-  const dx = e.changedTouches[0].clientX - zkSwipeStartX;
-  const dy = e.changedTouches[0].clientY - zkSwipeStartY;
-  // Yatay swipe > 60px ve dikey < yatay (scroll değil)
-  if(Math.abs(dx) > 60 && Math.abs(dx) > Math.abs(dy) * 1.5){
-    if(dx < 0) zkNext();  // Sola kaydır = sonraki
-    else zkPrev();         // Sağa kaydır = önceki
+  if(zkDrawingMode)return;
+  const dx=e.changedTouches[0].clientX-zkSwipeStartX;
+  const dy=e.changedTouches[0].clientY-zkSwipeStartY;
+  if(Math.abs(dx)>60 && Math.abs(dx)>Math.abs(dy)*1.5){
+    if(dx<0)zkNext(); else zkPrev();
   }
 }
 
-// Klavye navigasyonu
+// Klavye
 document.addEventListener('keydown', function(e){
-  const fs = H('zk-fullscreen');
-  if(!fs || fs.style.display === 'none') return;
-  if(e.key === 'ArrowLeft' || e.key === 'ArrowUp'){ e.preventDefault(); zkPrev(); }
-  if(e.key === 'ArrowRight' || e.key === 'ArrowDown'){ e.preventDefault(); zkNext(); }
-  if(e.key === 'Escape'){ zkClose(); }
+  const fs=H('zk-fullscreen'); if(!fs||fs.style.display==='none')return;
+  if(e.key==='ArrowLeft'){e.preventDefault();zkPrev();}
+  if(e.key==='ArrowRight'){e.preventDefault();zkNext();}
+  if(e.key==='Escape')zkClose();
 });
 
-// ---- MİNİ NAVİGASYON ----
+// Mini nav
 function zkUpdateMiniNav(){
-  const wrap = H('zk-mini-nav');
-  if(!wrap) return;
-  let qNum = 0;
-  wrap.innerHTML = zkQuestions.map((q, idx) => {
-    if(q.type === 'section') return '';
-    qNum++;
-    const isCurrent = idx === zkCurrentIdx ? ' current' : '';
-    const hasDraw = zkHasDrawing(idx) ? ' has-draw' : '';
-    return '<button class="zk-mini-btn'+isCurrent+hasDraw+'" onclick="zkGoTo('+idx+')">'+qNum+'</button>';
+  const wrap=H('zk-mini-nav'); if(!wrap)return;
+  let n=0;
+  wrap.innerHTML=zkQuestions.map((q,idx)=>{
+    if(q.type==='section')return'';
+    n++;
+    return '<button class="zk-mini-btn'+(idx===zkCurrentIdx?' current':'')+(zkHasDrawing(idx)?' has-draw':'')+'" onclick="zkGoTo('+idx+')">'+n+'</button>';
   }).join('');
 }
 
-// ---- ZOOM ----
+// Zoom
 function zkToggleZoom(){
-  zkZoomed = !zkZoomed;
-  const display = H('zk-question-display');
+  zkZoomed=!zkZoomed;
+  const d=H('zk-question-display');
+  const w=H('zk-content-wrap');
   if(zkZoomed){
-    display.style.fontSize = '1.4rem';
-    display.style.maxWidth = '100%';
-    H('zk-zoom-btn').style.background = 'var(--accent-glow)';
-    H('zk-zoom-btn').style.borderColor = 'var(--accent)';
+    w.style.maxWidth='100%'; d.style.fontSize='1.4rem';
+    H('zk-zoom-btn').style.background='var(--accent-glow)';
+    H('zk-zoom-btn').style.borderColor='var(--accent)';
   } else {
-    display.style.fontSize = '';
-    display.style.maxWidth = '900px';
-    H('zk-zoom-btn').style.background = '';
-    H('zk-zoom-btn').style.borderColor = '';
+    w.style.maxWidth='960px'; d.style.fontSize='';
+    H('zk-zoom-btn').style.background='';
+    H('zk-zoom-btn').style.borderColor='';
   }
-  setTimeout(() => zkResizeCanvas(), 100);
+  setTimeout(()=>zkResizeCanvas(),100);
 }
 
-// ---- EXPORT ----
+// Export
 function zkExportImage(){
-  if(!zkFabricCanvas) return;
-  const display = H('zk-question-display');
-  // html2canvas yok, basit export: sadece çizim katmanı
-  try {
-    const dataUrl = zkFabricCanvas.toDataURL({format:'png', quality:1});
-    const a = document.createElement('a');
-    a.href = dataUrl;
-    a.download = 'zkitap_soru_' + (zkCurrentIdx+1) + '.png';
-    a.click();
-    klbToast('📷 Çizim indirildi', 'success');
-  } catch(e){
-    klbToast('❌ Export hatası', 'error');
-  }
+  if(!zkFabricCanvas)return;
+  try{
+    const url=zkFabricCanvas.toDataURL({format:'png',quality:1});
+    const a=document.createElement('a'); a.href=url;
+    a.download='zkitap_soru_'+(zkCurrentIdx+1)+'.png'; a.click();
+    klbToast('📷 İndirildi','success');
+  }catch(e){klbToast('❌ Hata','error');}
 }
 
-// ---- WINDOW RESİZE ----
-window.addEventListener('resize', function(){
-  const fs = H('zk-fullscreen');
-  if(fs && fs.style.display !== 'none'){
-    setTimeout(() => zkResizeCanvas(), 100);
-  }
+// Resize
+window.addEventListener('resize',function(){
+  const fs=H('zk-fullscreen');
+  if(fs&&fs.style.display!=='none') setTimeout(()=>zkResizeCanvas(),100);
 });
 
 
