@@ -1655,6 +1655,247 @@ input, textarea, select, [contenteditable] {
 }
 
 
+<!-- ============================================================ -->
+<!-- MERKEZI ÖĞRENCİ YÖNETİM SİSTEMİ -->
+<!-- ============================================================ -->
+<script>
+// Merkezi Öğrenci Sistemi - GitHub Gist Backend
+class CentralStudentSystem {
+  constructor() {
+    this.config = {
+      gistId: null,
+      githubToken: null,
+      schoolName: '',
+      userRole: 'teacher', // 'admin', 'idare', 'rehberlik', 'teacher'
+      userName: '',
+      lastSync: null
+    };
+    this.localData = { students: {}, notifications: [], performanceData: {} };
+    this.loadConfig();
+    this.loadLocalData();
+  }
+  
+  loadConfig() {
+    try {
+      const saved = localStorage.getItem('css_config');
+      if (saved) this.config = { ...this.config, ...JSON.parse(saved) };
+    } catch (e) {}
+  }
+  
+  saveConfig() {
+    try {
+      localStorage.setItem('css_config', JSON.stringify(this.config));
+    } catch (e) {}
+  }
+  
+  loadLocalData() {
+    try {
+      const saved = localStorage.getItem('css_local_data');
+      if (saved) this.localData = { ...this.localData, ...JSON.parse(saved) };
+    } catch (e) {}
+  }
+  
+  saveLocalData() {
+    try {
+      localStorage.setItem('css_local_data', JSON.stringify(this.localData));
+    } catch (e) {}
+  }
+  
+  async setup(config) {
+    this.config = { ...this.config, ...config };
+    this.saveConfig();
+    if (!this.config.gistId) await this.createGist();
+    return { success: true, message: 'Sistem kuruldu!' };
+  }
+  
+  async createGist() {
+    if (!this.config.githubToken) throw new Error('GitHub token gerekli!');
+    
+    const gistData = {
+      description: `${this.config.schoolName} - Öğrenci DB (KORAY Kelebek)`,
+      public: false,
+      files: {
+        'students.json': {
+          content: JSON.stringify({
+            school: this.config.schoolName,
+            lastUpdated: new Date().toISOString(),
+            students: {},
+            notifications: [],
+            performanceData: {}
+          }, null, 2)
+        }
+      }
+    };
+    
+    const response = await fetch('https://api.github.com/gists', {
+      method: 'POST',
+      headers: {
+        'Authorization': `token ${this.config.githubToken}`,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify(gistData)
+    });
+    
+    if (!response.ok) throw new Error('Gist oluşturulamadı');
+    
+    const result = await response.json();
+    this.config.gistId = result.id;
+    this.saveConfig();
+    return result.id;
+  }
+  
+  canEditStudents() {
+    return ['admin', 'idare', 'rehberlik'].includes(this.config.userRole);
+  }
+  
+  async uploadStudents(studentsData) {
+    if (!this.canEditStudents()) {
+      throw new Error('Yetkiniz yok! Sadece Admin/İdare/Rehberlik öğrenci yükleyebilir.');
+    }
+    this.localData.students = studentsData;
+    this.saveLocalData();
+    await this.syncToGist();
+    return { success: true, message: 'Öğrenci listesi yüklendi!' };
+  }
+  
+  async syncToGist() {
+    if (!this.config.gistId || !this.config.githubToken) return;
+    
+    const gistContent = {
+      school: this.config.schoolName,
+      lastUpdated: new Date().toISOString(),
+      updatedBy: this.config.userName,
+      students: this.localData.students,
+      notifications: this.localData.notifications,
+      performanceData: this.localData.performanceData
+    };
+    
+    const response = await fetch(`https://api.github.com/gists/${this.config.gistId}`, {
+      method: 'PATCH',
+      headers: {
+        'Authorization': `token ${this.config.githubToken}`,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        files: { 'students.json': { content: JSON.stringify(gistContent, null, 2) } }
+      })
+    });
+    
+    if (!response.ok) throw new Error('Senkronizasyon hatası');
+    this.config.lastSync = new Date().toISOString();
+    this.saveConfig();
+  }
+  
+  async syncFromGist() {
+    if (!this.config.gistId || !this.config.githubToken) return;
+    
+    const response = await fetch(`https://api.github.com/gists/${this.config.gistId}`, {
+      headers: { 'Authorization': `token ${this.config.githubToken}` }
+    });
+    
+    if (!response.ok) throw new Error('Okuma hatası');
+    
+    const gist = await response.json();
+    const content = JSON.parse(gist.files['students.json'].content);
+    
+    this.localData.students = content.students || {};
+    this.localData.notifications = content.notifications || [];
+    this.localData.performanceData = content.performanceData || {};
+    
+    this.config.lastSync = new Date().toISOString();
+    this.saveConfig();
+    this.saveLocalData();
+    
+    return { success: true, data: content };
+  }
+  
+  getStudents() {
+    return this.localData.students;
+  }
+  
+  async sendNotification(notification) {
+    const newNotif = {
+      id: 'n_' + Date.now(),
+      timestamp: new Date().toISOString(),
+      sender: this.config.userName,
+      senderRole: this.config.userRole,
+      school: this.config.schoolName,
+      student: notification.student,
+      message: notification.message,
+      priority: notification.priority || 'normal',
+      read: {
+        admin: false,
+        idare: false,
+        rehberlik: false,
+        teacher: this.config.userRole === 'teacher'
+      }
+    };
+    
+    this.localData.notifications.unshift(newNotif);
+    this.saveLocalData();
+    await this.syncToGist();
+    return { success: true, notification: newNotif };
+  }
+  
+  getNotifications(unreadOnly = false) {
+    const role = this.config.userRole;
+    let notifs = this.localData.notifications.filter(n => n.school === this.config.schoolName);
+    if (unreadOnly) notifs = notifs.filter(n => !n.read[role]);
+    return notifs;
+  }
+  
+  async markAsRead(notificationId) {
+    const notif = this.localData.notifications.find(n => n.id === notificationId);
+    if (notif) {
+      notif.read[this.config.userRole] = true;
+      this.saveLocalData();
+      await this.syncToGist();
+    }
+  }
+  
+  async markAllAsRead() {
+    const role = this.config.userRole;
+    this.localData.notifications.forEach(n => {
+      if (n.school === this.config.schoolName) n.read[role] = true;
+    });
+    this.saveLocalData();
+    await this.syncToGist();
+  }
+  
+  isConfigured() {
+    return !!(this.config.gistId && this.config.githubToken && this.config.schoolName);
+  }
+  
+  getStatus() {
+    return {
+      configured: this.isConfigured(),
+      role: this.config.userRole,
+      school: this.config.schoolName,
+      lastSync: this.config.lastSync,
+      studentCount: Object.values(this.localData.students).reduce((s, a) => s + a.length, 0),
+      notificationCount: this.getNotifications(true).length
+    };
+  }
+  
+  async autoSync() {
+    if (!this.isConfigured()) return;
+    try {
+      await this.syncFromGist();
+    } catch (e) {
+      console.error('Auto-sync error:', e);
+    }
+  }
+}
+
+// Global instance
+window.CSS = new CentralStudentSystem();
+
+// Auto-sync every 30 seconds
+setInterval(() => {
+  if (window.CSS.isConfigured()) window.CSS.autoSync();
+}, 30000);
+</script>
+
 </style>
 </head>
 <body>
@@ -1829,6 +2070,70 @@ input, textarea, select, [contenteditable] {
 
 <!-- DESKTOP/TABLET İÇERİK (DEĞİŞMEDİ) -->
 <div class="desktop-tablet-content">
+  
+  <!-- MERKEZI ÖĞRENCİ SİSTEMİ KURULUM -->
+  <div id="css-setup-card" class="card" style="display:none;border:2px solid var(--accent);background:rgba(99,102,241,0.05)">
+    <div class="card-header">
+      <div class="card-title">🔗 Merkezi Öğrenci Sistemi Kurulumu</div>
+    </div>
+    <div style="font-size:.85rem;margin-bottom:16px;color:var(--text2)">
+      Öğrenci verilerini okul içinde paylaşmak için GitHub Gist tabanlı merkezi sistemi kurun. 
+      <b>Admin, İdare veya Rehberlik</b> bu sistemi kurabilir.
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">
+      <div>
+        <label class="lbl">Okul Adı</label>
+        <input class="inp inp-sm" id="css-school" placeholder="Atatürk Lisesi">
+      </div>
+      <div>
+        <label class="lbl">Adınız Soyadınız</label>
+        <input class="inp inp-sm" id="css-username" placeholder="Koray Turgut">
+      </div>
+      <div>
+        <label class="lbl">Rolünüz</label>
+        <select class="inp inp-sm" id="css-role">
+          <option value="teacher">Öğretmen (Sadece okuma + bildirim gönderme)</option>
+          <option value="idare">İdare (Öğrenci yükleme + tüm yetkiler)</option>
+          <option value="rehberlik">Rehberlik (Öğrenci yükleme + tüm yetkiler)</option>
+          <option value="admin">Admin (Tüm yetkiler)</option>
+        </select>
+      </div>
+      <div>
+        <label class="lbl">GitHub Token 
+          <a href="https://github.com/settings/tokens/new?scopes=gist&description=KORAY%20Kelebek%20Student%20Sync" 
+             target="_blank" style="font-size:.7rem;color:var(--accent)">(Nasıl alınır?)</a>
+        </label>
+        <input class="inp inp-sm" type="password" id="css-token" placeholder="ghp_xxxxxxxxxxxxx">
+      </div>
+    </div>
+    <div style="display:flex;gap:8px;margin-top:16px">
+      <button class="btn btn-primary" onclick="cssSetupSystem()">🚀 Sistemi Kur</button>
+      <button class="btn btn-ghost" onclick="cssConnectExisting()">🔗 Mevcut Sisteme Bağlan</button>
+      <button class="btn btn-ghost" onclick="cssSkipSetup()" style="margin-left:auto">Daha Sonra</button>
+    </div>
+  </div>
+  
+  <!-- MERKEZI SİSTEM DURUM KARTI -->
+  <div id="css-status-card" class="card" style="display:none;border:1px solid var(--green);background:rgba(16,185,129,0.05)">
+    <div style="display:flex;align-items:center;gap:12px">
+      <div style="font-size:2rem">✅</div>
+      <div style="flex:1">
+        <div style="font-weight:700;font-size:.9rem">Merkezi Öğrenci Sistemi Aktif</div>
+        <div style="font-size:.75rem;color:var(--text3);margin-top:2px">
+          <span id="css-status-school">—</span> • 
+          <span id="css-status-role">—</span> • 
+          <span id="css-status-students">0 öğrenci</span> • 
+          <span id="css-status-notif">0 bildirim</span>
+        </div>
+        <div style="font-size:.7rem;color:var(--text3);margin-top:4px">
+          Son senkronizasyon: <span id="css-status-sync">—</span>
+        </div>
+      </div>
+      <button class="btn btn-ghost btn-sm" onclick="cssManualSync()">🔄 Senkronize Et</button>
+      <button class="btn btn-ghost btn-sm" onclick="cssShowSettings()">⚙️ Ayarlar</button>
+    </div>
+  </div>
+  
   <div class="section-title">🏠 Genel Bakış</div>
   <div class="stat-grid">
     <div class="stat-card" style="--accent:var(--blue)"><div class="stat-val" id="st-qs">0</div><div class="stat-lbl">Soru</div></div>
@@ -1941,6 +2246,33 @@ input, textarea, select, [contenteditable] {
 
 <!-- ======== ÖĞRENCİLER ======== -->
 <div id="page-ogrenciler" class="page">
+  
+  <!-- MERKEZI SİSTEM DURUMU -->
+  <div id="css-students-banner" class="card" style="display:none;margin-bottom:16px;border:1px solid var(--green);background:rgba(16,185,129,0.05)">
+    <div style="display:flex;align-items:center;gap:12px">
+      <div style="font-size:1.5rem">🔗</div>
+      <div style="flex:1">
+        <div style="font-weight:700;font-size:.85rem">Merkezi Sistem Aktif</div>
+        <div style="font-size:.72rem;color:var(--text3)">Öğrenciler <b>tüm okulla</b> paylaşılıyor. Değişiklikler otomatik senkronize ediliyor.</div>
+      </div>
+      <button class="btn btn-success btn-sm" onclick="cssUploadStudentsToCloud()">☁️ Şimdi Yükle</button>
+    </div>
+  </div>
+  
+  <!-- YETKİ UYARISI -->
+  <div id="css-readonly-banner" class="card" style="display:none;margin-bottom:16px;border:1px solid var(--amber);background:rgba(251,191,36,0.05)">
+    <div style="display:flex;align-items:center;gap:12px">
+      <div style="font-size:1.5rem">🔒</div>
+      <div style="flex:1">
+        <div style="font-weight:700;font-size:.85rem">Salt Okunur Mod</div>
+        <div style="font-size:.72rem;color:var(--text3)">
+          Sadece <b>Admin, İdare ve Rehberlik</b> öğrenci ekleyip düzenleyebilir. 
+          Öğrenci listesini görebilirsiniz ancak değiştiremezsiniz.
+        </div>
+      </div>
+    </div>
+  </div>
+  
   <div class="section-title">👥 Öğrenci Listesi</div>
   <div style="display:grid;grid-template-columns:280px 1fr;gap:16px">
     <!-- Sol: Sınıf yönetimi -->
@@ -2664,6 +2996,24 @@ input, textarea, select, [contenteditable] {
 
 <!-- ======== PERFORMANS SİSTEMİ ======== -->
 <div id="page-performans" class="page">
+  
+  <!-- BİLDİRİMLER BANNER -->
+  <div id="perf-notifications-banner" class="card" style="display:none;margin-bottom:16px;border:2px solid var(--accent);background:rgba(99,102,241,0.05)">
+    <div style="display:flex;align-items:center;gap:12px">
+      <div style="font-size:2rem">🔔</div>
+      <div style="flex:1">
+        <div style="font-weight:700;font-size:.9rem">
+          <span id="perf-notif-count">0</span> Yeni Bildirim
+        </div>
+        <div style="font-size:.72rem;color:var(--text3);margin-top:2px">
+          Öğretmenlerden gelen uyarılar ve bildirimler
+        </div>
+      </div>
+      <button class="btn btn-primary btn-sm" onclick="perfShowNotifications()">📥 Bildirimleri Gör</button>
+      <button class="btn btn-ghost btn-sm" onclick="perfMarkAllAsRead()">✓ Tümünü Okundu İşaretle</button>
+    </div>
+  </div>
+  
   <div class="perf-container">
     <div class="perf-header">
       <h1>📊 Öğrenci Performans Değerlendirme Sistemi</h1>
@@ -2903,6 +3253,187 @@ let activeClass=null,salonCnt=0,qCnt=0,calismaCnt=0,currentExamName='',currentCa
 let _activeQId=null,_weSavedRange=null;
 
 function save(){try{localStorage.setItem('kelebek_db2',JSON.stringify(db));}catch(e){}}
+
+// ============================================================
+// MERKEZI ÖĞRENCİ SİSTEMİ - UI FONKSİYONLARI
+// ============================================================
+
+function cssCheckAndShowSetup(){
+  if(window.CSS.isConfigured()){
+    H('css-setup-card').style.display='none';
+    H('css-status-card').style.display='block';
+    cssUpdateStatus();
+  } else {
+    H('css-setup-card').style.display='block';
+    H('css-status-card').style.display='none';
+  }
+}
+
+function cssUpdateStatus(){
+  const status=window.CSS.getStatus();
+  H('css-status-school').textContent=status.school;
+  H('css-status-role').textContent=status.role==='admin'?'Admin':status.role==='idare'?'İdare':status.role==='rehberlik'?'Rehberlik':'Öğretmen';
+  H('css-status-students').textContent=status.studentCount+' öğrenci';
+  H('css-status-notif').textContent=status.notificationCount+' yeni bildirim';
+  H('css-status-sync').textContent=status.lastSync?new Date(status.lastSync).toLocaleString():'Henüz yapılmadı';
+}
+
+async function cssSetupSystem(){
+  const school=H('css-school').value.trim();
+  const username=H('css-username').value.trim();
+  const role=H('css-role').value;
+  const token=H('css-token').value.trim();
+  
+  if(!school||!username||!token){
+    alert('Lütfen tüm alanları doldurun!');
+    return;
+  }
+  
+  if(!token.startsWith('ghp_')){
+    alert('Geçersiz GitHub token! Token "ghp_" ile başlamalı.');
+    return;
+  }
+  
+  try{
+    await window.CSS.setup({
+      schoolName:school,
+      userName:username,
+      userRole:role,
+      githubToken:token
+    });
+    
+    klbToast('✅ Merkezi sistem başarıyla kuruldu!','success');
+    cssCheckAndShowSetup();
+  }catch(e){
+    alert('Kurulum hatası: '+e.message);
+    console.error(e);
+  }
+}
+
+async function cssConnectExisting(){
+  const gistId=prompt('Mevcut sistemin Gist ID\'sini girin:');
+  if(!gistId)return;
+  
+  const school=H('css-school').value.trim();
+  const username=H('css-username').value.trim();
+  const role=H('css-role').value;
+  const token=H('css-token').value.trim();
+  
+  if(!school||!username||!token){
+    alert('Lütfen tüm alanları doldurun!');
+    return;
+  }
+  
+  try{
+    window.CSS.config={
+      gistId:gistId,
+      githubToken:token,
+      schoolName:school,
+      userName:username,
+      userRole:role
+    };
+    window.CSS.saveConfig();
+    
+    await window.CSS.syncFromGist();
+    klbToast('✅ Mevcut sisteme bağlanıldı!','success');
+    cssCheckAndShowSetup();
+    
+    // Öğrencileri yerel db'ye kopyala
+    db.classes=window.CSS.getStudents();
+    save();
+    renderClassList();
+  }catch(e){
+    alert('Bağlantı hatası: '+e.message);
+    console.error(e);
+  }
+}
+
+function cssSkipSetup(){
+  H('css-setup-card').style.display='none';
+}
+
+async function cssManualSync(){
+  try{
+    await window.CSS.syncFromGist();
+    
+    // Öğrencileri yerel db'ye kopyala
+    db.classes=window.CSS.getStudents();
+    save();
+    renderClassList();
+    
+    cssUpdateStatus();
+    klbToast('✅ Senkronizasyon tamamlandı!','success');
+  }catch(e){
+    alert('Senkronizasyon hatası: '+e.message);
+  }
+}
+
+function cssShowSettings(){
+  const config=window.CSS.config;
+  alert(`Sistem Ayarları:\n\nOkul: ${config.schoolName}\nKullanıcı: ${config.userName}\nRol: ${config.userRole}\nGist ID: ${config.gistId}`);
+}
+
+// Sayfa yüklendiğinde kontrol et
+document.addEventListener('DOMContentLoaded',()=>{
+  cssCheckAndShowSetup();
+});
+
+// Otomatik yükleme (debounced)
+let cssUploadTimeout=null;
+async function cssAutoUpload(){
+  if(!window.CSS.isConfigured())return;
+  if(!window.CSS.canEditStudents())return;
+  
+  clearTimeout(cssUploadTimeout);
+  cssUploadTimeout=setTimeout(async ()=>{
+    try{
+      await window.CSS.uploadStudents(db.classes);
+      console.log('✅ Öğrenciler merkezi sisteme yüklendi');
+    }catch(e){
+      console.error('Yükleme hatası:',e);
+    }
+  },2000); // 2 saniye bekle
+}
+
+// Manuel yükleme
+async function cssUploadStudentsToCloud(){
+  if(!window.CSS.canEditStudents()){
+    alert('Yetkiniz yok!');
+    return;
+  }
+  
+  try{
+    await window.CSS.uploadStudents(db.classes);
+    klbToast('✅ Öğrenciler merkezi sisteme yüklendi!','success');
+  }catch(e){
+    alert('Yükleme hatası: '+e.message);
+  }
+}
+
+// Öğrenciler sayfası açıldığında banner göster
+function cssCheckStudentsPage(){
+  if(!window.CSS.isConfigured()){
+    H('css-students-banner').style.display='none';
+    H('css-readonly-banner').style.display='none';
+    return;
+  }
+  
+  if(window.CSS.canEditStudents()){
+    H('css-students-banner').style.display='block';
+    H('css-readonly-banner').style.display='none';
+  }else{
+    H('css-students-banner').style.display='none';
+    H('css-readonly-banner').style.display='block';
+    
+    // Salt okunur modu aktifleştir
+    const inputs=document.querySelectorAll('#page-ogrenciler input, #page-ogrenciler textarea, #page-ogrenciler button');
+    inputs.forEach(el=>{
+      if(!el.id.startsWith('css-'))el.disabled=true;
+    });
+  }
+}
+
+
 
 // ============================================================
 // KLB DOSYA SİSTEMİ
@@ -3565,12 +4096,21 @@ function deleteClass(){
   renderClassTabs();renderStats();renderKChecks();
 }
 function addStudentDo(){
+  // Yetki kontrolü
+  if(window.CSS.isConfigured() && !window.CSS.canEditStudents()){
+    alert('Yetkiniz yok! Sadece Admin, İdare ve Rehberlik öğrenci ekleyebilir.');
+    return;
+  }
+  
   const no=H('st-no').value.trim(),ad=H('st-name').value.trim();
   if(!activeClass||!ad){return;}
   if(!db.classes[activeClass])db.classes[activeClass]=[];
   db.classes[activeClass].push({no:no||'—',ad,sinif:activeClass});
   save();H('st-no').value='';H('st-name').value='';
   renderStudentTable();renderStats();
+  
+  // Merkezi sisteme senkronize et
+  cssAutoUpload();
 }
 function importStudentsDo(){
   const raw=H('bulk-input').value.trim();
@@ -3697,11 +4237,23 @@ function importStudentsDo(){
   save();H('bulk-input').value='';
   renderStudentTable();renderStats();
   alert(`✅ ${cnt} öğrenci eklendi.`);
+  
+  // Merkezi sisteme senkronize et
+  cssAutoUpload();
 }
 function delStudent(i){
+  // Yetki kontrolü
+  if(window.CSS.isConfigured() && !window.CSS.canEditStudents()){
+    alert('Yetkiniz yok! Sadece Admin, İdare ve Rehberlik öğrenci silebilir.');
+    return;
+  }
+  
   if(!activeClass)return;
   db.classes[activeClass].splice(i,1);save();
   renderStudentTable();renderStats();
+  
+  // Merkezi sisteme senkronize et
+  cssAutoUpload();
 }
 function renderStudentTable(){
   const cont=H('student-table');if(!cont)return;
@@ -9562,9 +10114,10 @@ function perfRenderTable(){
     cellsHtml += `
       <td><span class="perf-total-score">${total}</span></td>
       <td style="white-space:nowrap">
-        <button class="perf-view-btn" onclick="perfShowStudentDetail(${index})" style="padding:4px 6px;font-size:11px;margin:1px">👁️</button>
-        <button class="perf-btn" onclick="perfResetStudentScores(${index})" style="background:#f59e0b;color:white;padding:4px 6px;font-size:11px;margin:1px;border:none;border-radius:4px;cursor:pointer">🔄</button>
-        <button class="perf-delete-btn" onclick="perfDeleteStudent(${index})" style="padding:4px 6px;font-size:11px;margin:1px">🗑️</button>
+        <button class="perf-view-btn" onclick="perfShowStudentDetail(${index})" style="padding:4px 6px;font-size:11px;margin:1px" title="Detaylar">👁️</button>
+        <button class="perf-btn" onclick="perfResetStudentScores(${index})" style="background:#f59e0b;color:white;padding:4px 6px;font-size:11px;margin:1px;border:none;border-radius:4px;cursor:pointer" title="Sıfırla">🔄</button>
+        <button class="perf-btn" onclick="perfSendNotification(${index})" style="background:var(--accent);color:white;padding:4px 6px;font-size:11px;margin:1px;border:none;border-radius:4px;cursor:pointer" title="Bildirim Gönder" id="perf-notif-btn-${index}">🔔</button>
+        <button class="perf-delete-btn" onclick="perfDeleteStudent(${index})" style="padding:4px 6px;font-size:11px;margin:1px" title="Sil">🗑️</button>
       </td>`;
     
     row.innerHTML = cellsHtml;
@@ -12722,6 +13275,143 @@ function zkPdfPreview(){
   H('zk-pdf-preview-content').innerHTML='<div style="background:#fff;width:min(800px,96vw);box-shadow:0 8px 48px rgba(0,0,0,.8);border-radius:4px;overflow:auto">'+pageHtml+'</div>';
   H('zk-pdf-preview').style.display='flex';
 }
+
+// ============================================================
+// PERFORMANS BİLDİRİM SİSTEMİ
+// ============================================================
+
+async function perfSendNotification(studentIndex){
+  if(!window.CSS.isConfigured()){
+    alert('Merkezi sistem aktif değil! Ana sayfadan sistemi kurun.');
+    return;
+  }
+  
+  const classStudents=perfStudents[perfCurrentClass]||[];
+  const student=classStudents[studentIndex];
+  if(!student)return;
+  
+  const message=prompt(`${student.name} için bildirim mesajı:\n\nÖrnek: "Düşük performans - Ek çalışma gerekli"\n"Devamsızlık problemi"\n"Psikolojik destek önerilir"`);
+  if(!message||!message.trim())return;
+  
+  const priority=confirm('Bu bildirim ACİL mi? (Hayır = Normal bildirim)')?'urgent':'normal';
+  
+  try{
+    await window.CSS.sendNotification({
+      student:{
+        no:student.schoolNumber,
+        ad:student.name,
+        sinif:perfCurrentClass
+      },
+      message:message.trim(),
+      priority:priority
+    });
+    
+    klbToast('✅ Bildirim gönderildi! İdare, Rehberlik ve Sınıf Öğretmenine iletildi.','success');
+    
+    // Butonu geçici olarak yeşil yap
+    const btn=H('perf-notif-btn-'+studentIndex);
+    if(btn){
+      btn.style.background='var(--green)';
+      btn.textContent='✓';
+      setTimeout(()=>{
+        btn.style.background='var(--accent)';
+        btn.textContent='🔔';
+      },2000);
+    }
+  }catch(e){
+    alert('Bildirim gönderilemedi: '+e.message);
+  }
+}
+
+async function perfShowNotifications(){
+  const notifs=window.CSS.getNotifications(true);
+  
+  if(notifs.length===0){
+    alert('Yeni bildirim yok!');
+    return;
+  }
+  
+  let html='<div style="max-width:800px;max-height:80vh;overflow-y:auto">';
+  html+='<h2 style="margin-bottom:16px">🔔 Bildirimler ('+notifs.length+' yeni)</h2>';
+  
+  notifs.forEach(n=>{
+    const priorityColor=n.priority==='urgent'?'var(--red)':n.priority==='high'?'var(--amber)':'var(--text2)';
+    const priorityIcon=n.priority==='urgent'?'🔴':n.priority==='high'?'⚠️':'ℹ️';
+    
+    html+=`
+      <div style="background:var(--bg0);border:1px solid var(--border);border-radius:8px;padding:12px;margin-bottom:12px">
+        <div style="display:flex;align-items:start;gap:12px">
+          <div style="font-size:1.5rem">${priorityIcon}</div>
+          <div style="flex:1">
+            <div style="font-weight:700;font-size:.9rem;color:${priorityColor}">${n.student.ad} (${n.student.no})</div>
+            <div style="font-size:.75rem;color:var(--text3);margin:4px 0">Sınıf: ${n.student.sinif}</div>
+            <div style="font-size:.85rem;margin:8px 0;padding:8px;background:var(--bg);border-radius:4px">${n.message}</div>
+            <div style="font-size:.7rem;color:var(--text3);margin-top:8px">
+              Gönderen: ${n.sender} (${n.senderRole}) • ${new Date(n.timestamp).toLocaleString('tr-TR')}
+            </div>
+            <button onclick="perfMarkNotificationRead('${n.id}')" style="margin-top:8px;padding:4px 8px;font-size:.75rem;background:var(--green);color:white;border:none;border-radius:4px;cursor:pointer">✓ Okundu</button>
+          </div>
+        </div>
+      </div>`;
+  });
+  
+  html+='</div>';
+  
+  const modal=document.createElement('div');
+  modal.style.cssText='position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.7);display:flex;align-items:center;justify-content:center;z-index:10000;padding:20px';
+  modal.innerHTML=`
+    <div style="background:var(--bg);border-radius:12px;padding:24px;max-width:900px;width:100%">
+      ${html}
+      <div style="text-align:right;margin-top:16px">
+        <button onclick="this.closest('[style*=position]').remove()" class="btn btn-ghost">Kapat</button>
+      </div>
+    </div>`;
+  document.body.appendChild(modal);
+}
+
+async function perfMarkNotificationRead(notifId){
+  await window.CSS.markAsRead(notifId);
+  klbToast('✓ Okundu olarak işaretlendi','success');
+  perfUpdateNotificationBanner();
+  // Modal'ı yenile
+  const modal=document.querySelector('[style*="position:fixed"]');
+  if(modal)modal.remove();
+  perfShowNotifications();
+}
+
+async function perfMarkAllAsRead(){
+  await window.CSS.markAllAsRead();
+  klbToast('✓ Tüm bildirimler okundu olarak işaretlendi','success');
+  perfUpdateNotificationBanner();
+}
+
+function perfUpdateNotificationBanner(){
+  if(!window.CSS.isConfigured()){
+    H('perf-notifications-banner').style.display='none';
+    return;
+  }
+  
+  const unreadCount=window.CSS.getNotifications(true).length;
+  
+  if(unreadCount>0){
+    H('perf-notifications-banner').style.display='block';
+    H('perf-notif-count').textContent=unreadCount;
+  }else{
+    H('perf-notifications-banner').style.display='none';
+  }
+}
+
+// Performans sayfası açıldığında bildirimleri kontrol et
+const originalShowPage=window.showPage||function(){};
+window.showPage=function(pageId){
+  originalShowPage(pageId);
+  if(pageId==='performans'){
+    perfUpdateNotificationBanner();
+  }
+  if(pageId==='ogrenciler'){
+    cssCheckStudentsPage();
+  }
+};
 
 
 </script>
