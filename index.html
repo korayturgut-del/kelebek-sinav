@@ -1982,7 +1982,7 @@ body.mpts-active #mpts-mobile-back{
     <div class="nav-tab" id="nav-ogrenciler" onclick="showPage('ogrenciler')">👥 Öğrenciler</div>
     <div class="nav-tab desktop-only tablet-only" id="nav-sorular" onclick="showPage('sorular')">✏️ Sınav Editörü</div>
     <div class="nav-tab desktop-only tablet-only" id="nav-calisma" onclick="showPage('calisma')">📝 Çalışma Kağıdı</div>
-    <div class="nav-tab" id="nav-zkitap" onclick="showPage('zkitap')">📖 Z-Kitap</div>
+    <div class="nav-tab desktop-only" id="nav-zkitap" onclick="showPage('zkitap')">📖 Z-Kitap</div>
     <div class="nav-tab desktop-only tablet-only" id="nav-kelebek" onclick="showPage('kelebek')">📋 Salon Dağıtım</div>
     <div class="nav-tab" id="nav-performans" onclick="showPage('performans')">📊 Performans</div>
   </div>
@@ -2058,11 +2058,19 @@ body.mpts-active #mpts-mobile-back{
           <div class="mobile-card-desc">Yedeklenen verileri geri getir</div>
         </div>
       </div>
-      <div class="mobile-card" onclick="showPage('zkitap')" style="border-color:var(--purple);background:rgba(167,139,250,0.08)">
+      <div class="mobile-card desktop-only" onclick="showPage('zkitap')" style="border-color:var(--purple);background:rgba(167,139,250,0.08)">
         <div class="mobile-card-icon">📖</div>
         <div class="mobile-card-content">
           <div class="mobile-card-title" style="color:var(--purple)">Z-Kitap</div>
           <div class="mobile-card-desc">Soru dosyalarını interaktif kitap olarak aç</div>
+        </div>
+        <div class="mobile-card-arrow">›</div>
+      </div>
+      <div class="mobile-card" onclick="maarifShowDataCleanup()" style="border-color:#ef4444;background:rgba(239,68,68,0.08)">
+        <div class="mobile-card-icon">🗑️</div>
+        <div class="mobile-card-content">
+          <div class="mobile-card-title" style="color:#ef4444">Veri Temizle</div>
+          <div class="mobile-card-desc">Eski/sanal verileri sil</div>
         </div>
         <div class="mobile-card-arrow">›</div>
       </div>
@@ -3073,7 +3081,7 @@ body.mpts-active #mpts-mobile-back{
 <!-- ======== PERFORMANS SİSTEMİ (MPTS - Mobil/Tüm cihazlar) ======== -->
 <!-- Performans sayfası: Maarif Modeli + Yapay Zeka Değerlendirme -->
 <div id="page-performans" class="page" style="padding-top:16px">
-  <div class="container" style="max-width:1200px;margin:0 auto">
+  <div class="container" style="max-width:1100px;margin:0 auto">
     
     <!-- Üst başlık -->
     <div class="card" style="background:linear-gradient(135deg,#a855f7 0%,#7c3aed 100%);color:#fff;border:none">
@@ -3081,64 +3089,117 @@ body.mpts-active #mpts-mobile-back{
         <div style="font-size:2.4rem">🎓</div>
         <div style="flex:1;min-width:240px">
           <div style="font-size:1.15rem;font-weight:800;margin-bottom:4px">Maarif Modeli Performans Değerlendirmesi</div>
-          <div style="font-size:.78rem;opacity:.92">Yapay zeka destekli, Türkiye Yüzyılı Maarif Modeli'ne uygun, müfettiş kalitesinde objektif değerlendirme</div>
+          <div style="font-size:.78rem;opacity:.92">Yapay zeka destekli, telafi tabanlı, müfettiş kalitesinde objektif değerlendirme</div>
         </div>
-        <button class="btn btn-ghost btn-sm" onclick="maarifShowInfo()" style="background:rgba(255,255,255,.18);border-color:rgba(255,255,255,.35);color:#fff">ℹ️ Nasıl Çalışır?</button>
-      </div>
-      <div style="background:rgba(255,255,255,.15);border-radius:8px;padding:10px 12px;margin-top:12px;font-size:.78rem;line-height:1.5">
-        <b>📝 3 Adımda Yapay Zeka Değerlendirmesi:</b><br>
-        1️⃣ Sınıf ve öğrenci seç<br>
-        2️⃣ Aşağıya gözlemini yaz (örn: "Ali arkadaşına yardım etti")<br>
-        3️⃣ <b>🤖 Maarif Değerlendirmesi Yap</b> butonuna bas → Yapay zeka analiz yapar
+        <button class="btn btn-ghost btn-sm" onclick="maarifShowInfo()" style="background:rgba(255,255,255,.18);border-color:rgba(255,255,255,.35);color:#fff">ℹ️ Bilgi</button>
       </div>
     </div>
 
-    <div class="grid mt3" style="gap:16px;grid-template-columns:repeat(auto-fit,minmax(320px,1fr))">
-      
-      <!-- SOL: Yeni değerlendirme paneli -->
-      <div class="card">
-        <div class="card-title" style="color:var(--purple)">📝 Yeni Gözlem Değerlendir</div>
-        
-        <label style="display:block;margin-top:10px;font-size:.78rem;color:var(--text2);font-weight:600">Sınıf</label>
-        <select id="mai-sinif" style="width:100%;padding:9px;border:1.5px solid var(--border);background:var(--bg2);color:var(--text);border-radius:6px;font-size:.85rem" onchange="maarifLoadStudents()">
-          <option value="">— Sınıf seçin —</option>
-        </select>
-        
-        <label style="display:block;margin-top:10px;font-size:.78rem;color:var(--text2);font-weight:600">Öğrenci</label>
-        <select id="mai-ogrenci" style="width:100%;padding:9px;border:1.5px solid var(--border);background:var(--bg2);color:var(--text);border-radius:6px;font-size:.85rem">
-          <option value="">— Önce sınıf seçin —</option>
-        </select>
-        
-        <label style="display:block;margin-top:10px;font-size:.78rem;color:var(--text2);font-weight:600">
-          Gözlem / Olay
-          <span style="font-weight:400;color:var(--text3)">(en az 10, en fazla 3000 karakter)</span>
-        </label>
-        <textarea id="mai-observation" rows="6" placeholder="Örnek: Alperen, fizik dersindeki rüzgar türbini projesinde grup arkadaşlarının malzeme eksikliğini fark edip kendi kartonlarını paylaştı. Kanat eğimini hesaplarken arkadaşlarına formülü sabırla açıkladı." style="width:100%;padding:10px;border:1.5px solid var(--border);background:var(--bg2);color:var(--text);border-radius:6px;font-size:.85rem;font-family:inherit;resize:vertical;min-height:120px"></textarea>
-        <div style="display:flex;justify-content:space-between;align-items:center;margin-top:6px">
-          <span id="mai-charcount" style="font-size:.7rem;color:var(--text3)">0 / 3000</span>
+    <!-- Sınıf / Öğrenci seçici -->
+    <div class="card mt3">
+      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:10px">
+        <div>
+          <label style="display:block;font-size:.78rem;color:var(--text2);font-weight:600;margin-bottom:4px">🏫 Sınıf</label>
+          <select id="mai-sinif" style="width:100%;padding:11px;border:1.5px solid var(--border);background:var(--bg2);color:var(--text);border-radius:8px;font-size:.9rem" onchange="maarifLoadStudents()">
+            <option value="">— Sınıf seçin —</option>
+          </select>
         </div>
-        
-        <button class="btn btn-primary" id="mai-analyze-btn" onclick="maarifAnalyze()" style="width:100%;margin-top:12px;padding:12px;font-size:.92rem;font-weight:700;background:linear-gradient(135deg,#a855f7,#7c3aed);border:none">
-          🤖 Maarif Değerlendirmesi Yap
-        </button>
-        <div style="font-size:.7rem;color:var(--text3);margin-top:6px;text-align:center">
-          🔒 Yapay zeka analizi anında onayınızla kaydedilir
+        <div>
+          <label style="display:block;font-size:.78rem;color:var(--text2);font-weight:600;margin-bottom:4px">👤 Öğrenci</label>
+          <select id="mai-ogrenci" style="width:100%;padding:11px;border:1.5px solid var(--border);background:var(--bg2);color:var(--text);border-radius:8px;font-size:.9rem">
+            <option value="">— Önce sınıf seçin —</option>
+          </select>
         </div>
       </div>
+    </div>
 
-      <!-- SAĞ: Geçmiş değerlendirmeler özeti -->
-      <div class="card">
-        <div class="card-title" style="color:var(--purple)">📊 Bu Öğrencinin Geçmişi</div>
-        <div id="mai-history" style="margin-top:8px;max-height:560px;overflow:auto">
-          <div style="text-align:center;color:var(--text3);padding:30px 10px;font-size:.85rem">
-            👈 Önce sınıf ve öğrenci seçin
-          </div>
+    <!-- ÖĞRENCİ KARTI: Toplam Puan -->
+    <div id="mai-student-card" class="card mt3" style="display:none;background:linear-gradient(135deg,#1e293b,#0f172a);border:2px solid #a855f7;color:#fff">
+      <div style="display:flex;align-items:center;gap:16px;flex-wrap:wrap">
+        <div id="mai-student-avatar" style="width:70px;height:70px;border-radius:50%;background:#a855f7;display:flex;align-items:center;justify-content:center;font-size:2rem;font-weight:800;color:#fff;flex-shrink:0">A</div>
+        <div style="flex:1;min-width:180px">
+          <div id="mai-student-name" style="font-size:1.2rem;font-weight:800">Öğrenci</div>
+          <div id="mai-student-info" style="font-size:.78rem;opacity:.85;margin-top:2px">No: — • Sınıf: —</div>
         </div>
-        <div id="mai-history-actions" style="display:none;margin-top:12px;display:flex;gap:8px;flex-wrap:wrap">
-          <button class="btn btn-success btn-sm" onclick="maarifShowProfile()" style="flex:1;min-width:120px">📊 Profil & Radar</button>
-          <button class="btn btn-primary btn-sm" onclick="maarifPrintReport()" style="flex:1;min-width:120px">📄 Müfettiş PDF</button>
+        <div style="text-align:center">
+          <div style="font-size:.7rem;opacity:.85;text-transform:uppercase;letter-spacing:1px">Toplam Puan</div>
+          <div id="mai-student-score" style="font-size:2.4rem;font-weight:900;line-height:1">100</div>
+          <div id="mai-student-badge" style="font-size:.72rem;margin-top:2px"></div>
         </div>
       </div>
+    </div>
+
+    <!-- HIZLI KAYITLAR -->
+    <div id="mai-quick-actions" class="card mt3" style="display:none">
+      <div class="card-title" style="color:var(--purple);display:flex;align-items:center;gap:8px">
+        <span>⚡ Hızlı Kayıt</span>
+        <span style="font-size:.7rem;font-weight:400;color:var(--text3)">(tıkla, anında puan değişsin)</span>
+      </div>
+      
+      <!-- Olumlu butonlar -->
+      <div style="margin-top:10px">
+        <div style="font-size:.72rem;color:#22c55e;font-weight:700;margin-bottom:6px">🟢 OLUMLU</div>
+        <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:8px">
+          <button class="mai-quick-btn mai-quick-pos" onclick="maarifQuickRecord('Soru sordu', 1, 'pos')">❓ Soru sordu <b>+1</b></button>
+          <button class="mai-quick-btn mai-quick-pos" onclick="maarifQuickRecord('Doğru cevap', 1, 'pos')">💡 Doğru cevap <b>+1</b></button>
+          <button class="mai-quick-btn mai-quick-pos" onclick="maarifQuickRecord('Tahtaya kalktı', 1, 'pos')">📐 Tahtaya kalktı <b>+1</b></button>
+          <button class="mai-quick-btn mai-quick-pos" onclick="maarifQuickRecord('Ödevini yaptı', 2, 'pos')">📚 Ödev yaptı <b>+2</b></button>
+          <button class="mai-quick-btn mai-quick-pos" onclick="maarifQuickRecord('Arkadaşına yardım etti', 2, 'pos')">🤝 Yardım etti <b>+2</b></button>
+          <button class="mai-quick-btn mai-quick-pos" onclick="maarifQuickRecord('Aktif katıldı', 2, 'pos')">🎯 Aktif katıldı <b>+2</b></button>
+          <button class="mai-quick-btn mai-quick-pos" onclick="maarifQuickRecord('Üstün performans', 3, 'pos')">⭐ Üstün <b>+3</b></button>
+        </div>
+      </div>
+      
+      <!-- Olumsuz butonlar -->
+      <div style="margin-top:14px">
+        <div style="font-size:.72rem;color:#ef4444;font-weight:700;margin-bottom:6px">🔴 OLUMSUZ <span style="font-weight:400;color:var(--text3)">(silinemez — telafi gerekir)</span></div>
+        <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:8px">
+          <button class="mai-quick-btn mai-quick-neg" onclick="maarifQuickRecord('Geç geldi', -1, 'neg')">⏰ Geç geldi <b>-1</b></button>
+          <button class="mai-quick-btn mai-quick-neg" onclick="maarifQuickRecord('İzinsiz konuştu', -1, 'neg')">🗣️ İzinsiz konuştu <b>-1</b></button>
+          <button class="mai-quick-btn mai-quick-neg" onclick="maarifQuickRecord('Dikkatsiz / telefon', -1, 'neg')">📵 Dikkatsiz <b>-1</b></button>
+          <button class="mai-quick-btn mai-quick-neg" onclick="maarifQuickRecord('Hazırlıksız geldi', -1, 'neg')">📖 Hazırlıksız <b>-1</b></button>
+          <button class="mai-quick-btn mai-quick-neg" onclick="maarifQuickRecord('Ödev yapmadı', -2, 'neg')">🚫 Ödev yapmadı <b>-2</b></button>
+          <button class="mai-quick-btn mai-quick-neg" onclick="maarifQuickRecord('Arkadaşıyla tartıştı', -2, 'neg')">😡 Tartıştı <b>-2</b></button>
+          <button class="mai-quick-btn mai-quick-neg" onclick="maarifQuickRecord('Saygısızlık', -3, 'neg')">💢 Saygısızlık <b>-3</b></button>
+        </div>
+      </div>
+    </div>
+
+    <!-- DEVASA YAPAY ZEKA BUTONU -->
+    <div id="mai-ai-section" class="card mt3" style="display:none;background:linear-gradient(135deg,rgba(168,85,247,.08),rgba(124,58,237,.08));border:2px solid #a855f7">
+      <div class="card-title" style="color:var(--purple)">🤖 Yapay Zeka Maarif Değerlendirmesi</div>
+      
+      <div style="background:var(--bg2);border-radius:8px;padding:10px 12px;margin-bottom:10px;font-size:.78rem;color:var(--text2);line-height:1.5">
+        <b>📌 Yapay Zeka Kuralı:</b><br>
+        ✅ Olumlu davranış varsa → puan <b>yükseltir</b><br>
+        ⚠️ Olumsuz davranış varsa → puan <b>düşürür</b> (kalıcı kayıt, telafi etmek gerek)<br>
+        🎯 Maarif Modeli'ne göre etiketler: Çatı Değerler, Eğilimler, Beceriler
+      </div>
+      
+      <label style="display:block;font-size:.78rem;color:var(--text2);font-weight:600;margin-bottom:4px">
+        📝 Gözlemini Yaz <span style="font-weight:400;color:var(--text3)">(en az 10, en fazla 3000 karakter)</span>
+      </label>
+      <textarea id="mai-observation" rows="5" placeholder="Örnek: Ali bugün matematik dersinde grup arkadaşlarına yardım etti, formülü sabırla açıkladı, doğru cevaplar verdi." style="width:100%;padding:11px;border:1.5px solid var(--border);background:var(--bg2);color:var(--text);border-radius:8px;font-size:.9rem;font-family:inherit;resize:vertical;min-height:110px"></textarea>
+      <div style="font-size:.7rem;color:var(--text3);margin-top:4px;text-align:right" id="mai-charcount">0 / 3000</div>
+      
+      <button class="btn btn-primary" id="mai-analyze-btn" onclick="maarifAnalyze()" style="width:100%;margin-top:14px;padding:18px;font-size:1.05rem;font-weight:800;background:linear-gradient(135deg,#a855f7,#7c3aed);border:none;border-radius:12px;box-shadow:0 4px 16px rgba(168,85,247,.4);min-height:60px">
+        🤖 YAPAY ZEKA DEĞERLENDİRMESİ YAP
+      </button>
+      <div style="font-size:.7rem;color:var(--text3);margin-top:6px;text-align:center">
+        🔒 Onay verince puana otomatik yansır • Maarif Modeli'ne uygun
+      </div>
+    </div>
+
+    <!-- Geçmiş Kayıtlar -->
+    <div id="mai-history-section" class="card mt3" style="display:none">
+      <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px">
+        <div class="card-title" style="color:var(--purple);margin:0">📊 Bu Öğrencinin Geçmişi</div>
+        <div style="display:flex;gap:6px;flex-wrap:wrap">
+          <button class="btn btn-success btn-sm" onclick="maarifShowProfile()">📊 Profil & Radar</button>
+          <button class="btn btn-primary btn-sm" onclick="maarifPrintReport()">📄 Müfettiş PDF</button>
+        </div>
+      </div>
+      <div id="mai-history" style="margin-top:10px;max-height:480px;overflow:auto"></div>
     </div>
     
     <!-- Tüm değerlendirmeler — global istatistik -->
@@ -3152,6 +3213,23 @@ body.mpts-active #mpts-mobile-back{
     
   </div>
 </div>
+
+<style>
+.mai-quick-btn{
+  padding:11px 10px;border-radius:8px;border:1.5px solid;cursor:pointer;
+  font-size:.78rem;font-weight:600;text-align:center;transition:all .15s;
+  min-height:50px;display:flex;align-items:center;justify-content:center;gap:4px;
+  flex-wrap:wrap;line-height:1.2
+}
+.mai-quick-pos{background:rgba(34,197,94,.08);border-color:#22c55e;color:#16a34a}
+.mai-quick-pos:hover{background:rgba(34,197,94,.18);transform:translateY(-1px)}
+.mai-quick-pos b{color:#16a34a;font-size:.9rem}
+.mai-quick-neg{background:rgba(239,68,68,.08);border-color:#ef4444;color:#dc2626}
+.mai-quick-neg:hover{background:rgba(239,68,68,.18);transform:translateY(-1px)}
+.mai-quick-neg b{color:#dc2626;font-size:.9rem}
+[data-theme="light"] .mai-quick-pos{color:#15803d;background:rgba(34,197,94,.12)}
+[data-theme="light"] .mai-quick-neg{color:#b91c1c;background:rgba(239,68,68,.12)}
+</style>
 
 
 <!-- ======== PRINT OUTPUT ======== -->
@@ -3821,6 +3899,25 @@ function init(){
         if(q.text)q.text=migrateCleanText(q.text);
       });
     }
+    
+    // MİGRASYON: Eski öğrencilere id ve toplamPuan ekle (yoksa)
+    if(db.classes){
+      Object.keys(db.classes).forEach(function(sinif){
+        if(Array.isArray(db.classes[sinif])){
+          db.classes[sinif].forEach(function(st,idx){
+            if(!st.id){
+              st.id = 'st_' + Date.now() + '_' + sinif.replace(/[^a-zA-Z0-9]/g,'') + '_' + idx;
+            }
+            if(typeof st.toplamPuan !== 'number'){
+              st.toplamPuan = 100;
+            }
+          });
+        }
+      });
+    }
+    
+    // MİGRASYON: maarifAi yapısı yoksa oluştur
+    if(!db.maarifAi) db.maarifAi = {};
   }catch(e){console.warn('DB load error:',e);}
   loadSettings();
   renderStats();
@@ -4096,13 +4193,30 @@ function addStudentDo(){
   const no=H('st-no').value.trim(),ad=H('st-name').value.trim();
   if(!activeClass||!ad){return;}
   if(!db.classes[activeClass])db.classes[activeClass]=[];
-  db.classes[activeClass].push({no:no||'—',ad,sinif:activeClass});
+  db.classes[activeClass].push({
+    no:no||'—',
+    ad,
+    sinif:activeClass,
+    id:'st_'+Date.now()+'_'+Math.floor(Math.random()*1000),
+    toplamPuan:100  // Maarif puanı 100'den başlar
+  });
   save();H('st-no').value='';H('st-name').value='';
   renderStudentTable();renderStats();
   
   // Merkezi sisteme senkronize et
   cssAutoUpload();
 }
+// Yeni öğrenci nesnesi (toplamPuan=100 başlangıç)
+function _newStudentObj(no, ad, sinif){
+  return {
+    no: no,
+    ad: ad,
+    sinif: sinif,
+    id: 'st_' + Date.now() + '_' + Math.floor(Math.random()*100000),
+    toplamPuan: 100
+  };
+}
+
 function importStudentsDo(){
   const raw=H('bulk-input').value.trim();
   if(!raw||!activeClass)return;
@@ -4126,7 +4240,13 @@ function importStudentsDo(){
         }
         
         if(ad&&no){
-          db.classes[activeClass].push({no:no,ad:ad,sinif:activeClass});
+          db.classes[activeClass].push({
+            no:no,
+            ad:ad,
+            sinif:activeClass,
+            id:'st_'+Date.now()+'_'+Math.floor(Math.random()*100000),
+            toplamPuan:100
+          });
           cnt++;
           return;
         }
@@ -4170,7 +4290,7 @@ function importStudentsDo(){
       ad=ad.replace(/(\s+\d+)+\s*$/,'').trim();
       ad=ad.replace(/[^\wğüşıöçĞÜŞİÖÇ\s-]/g,'').trim();
       if(ad.length>=2&&ad.length<=50&&ad.split(/\s+/).length<=5){
-        db.classes[activeClass].push({no:no,ad:ad,sinif:activeClass});
+        db.classes[activeClass].push(_newStudentObj(no,ad,activeClass));
         cnt++;
         return;
       }
@@ -4195,7 +4315,7 @@ function importStudentsDo(){
       // Fallback: sıra numarası eşleşmezse, sayı bloğunu doğrudan okul no say (3+ hane ise)
       if(!no&&nums.length>=3){no=nums;}
       if(no&&no.length>=3&&ad.length>=2&&ad.length<=50&&ad.split(/\s+/).length<=5){
-        db.classes[activeClass].push({no:no,ad:ad,sinif:activeClass});
+        db.classes[activeClass].push(_newStudentObj(no,ad,activeClass));
         cnt++;
         bulkSiraNo++;
         return;
@@ -4220,7 +4340,7 @@ function importStudentsDo(){
       var kelimeSayisi=ad.split(/\s+/).length;
       if(!ad||ad.length<2||kelimeSayisi>4)return;
       
-      db.classes[activeClass].push({no:no,ad:ad,sinif:activeClass});
+      db.classes[activeClass].push(_newStudentObj(no,ad,activeClass));
       cnt++;
     }
   });
@@ -9966,33 +10086,92 @@ function maarifLoadHistory(){
   const id = H('mai-ogrenci').value;
   maarifSelectedStudentId = id;
   const histDiv = H('mai-history');
-  const actDiv = H('mai-history-actions');
+  const studentCard = H('mai-student-card');
+  const quickActions = H('mai-quick-actions');
+  const aiSection = H('mai-ai-section');
+  const histSection = H('mai-history-section');
   
   if(!id){
-    histDiv.innerHTML = '<div style="text-align:center;color:var(--text3);padding:30px 10px;font-size:.85rem">👈 Öğrenci seçin</div>';
-    actDiv.style.display = 'none';
+    if(studentCard) studentCard.style.display = 'none';
+    if(quickActions) quickActions.style.display = 'none';
+    if(aiSection) aiSection.style.display = 'none';
+    if(histSection) histSection.style.display = 'none';
     return;
   }
   
+  // Öğrenci bilgisini bul
+  const sinif = H('mai-sinif').value;
+  const student = (db.classes[sinif]||[]).find(s=>s.id===id);
+  if(!student){
+    klbToast('⚠️ Öğrenci bulunamadı','error');
+    return;
+  }
+  
+  // Toplam puan
+  if(typeof student.toplamPuan !== 'number') student.toplamPuan = 100;
+  const puan = student.toplamPuan;
+  
+  // Öğrenci kartını göster
+  if(studentCard){
+    studentCard.style.display = 'block';
+    H('mai-student-name').textContent = student.ad;
+    H('mai-student-info').textContent = 'No: ' + (student.no||'—') + ' • Sınıf: ' + sinif;
+    
+    // Avatar (ilk harf)
+    const firstLetter = (student.ad||'?').charAt(0).toUpperCase();
+    H('mai-student-avatar').textContent = firstLetter;
+    
+    // Puan
+    const scoreEl = H('mai-student-score');
+    const badgeEl = H('mai-student-badge');
+    scoreEl.textContent = puan;
+    
+    if(puan >= 100){
+      scoreEl.style.color = '#fbbf24';
+      if(puan > 100) badgeEl.innerHTML = '🏆 +' + (puan-100) + ' BONUS';
+      else badgeEl.innerHTML = '🏆 TAM NOT';
+    } else if(puan >= 85){
+      scoreEl.style.color = '#22c55e';
+      badgeEl.innerHTML = '✅ İyi';
+    } else if(puan >= 70){
+      scoreEl.style.color = '#3b82f6';
+      badgeEl.innerHTML = '📊 Orta';
+    } else if(puan >= 50){
+      scoreEl.style.color = '#f59e0b';
+      badgeEl.innerHTML = '⚠️ Gelişiyor';
+    } else {
+      scoreEl.style.color = '#ef4444';
+      badgeEl.innerHTML = '🆘 Zayıf';
+    }
+  }
+  
+  // Diğer panelleri aç
+  if(quickActions) quickActions.style.display = 'block';
+  if(aiSection) aiSection.style.display = 'block';
+  if(histSection) histSection.style.display = 'block';
+  
+  // Geçmiş listesi
   const list = (db.maarifAi||{})[id] || [];
   if(!list.length){
-    histDiv.innerHTML = '<div style="text-align:center;color:var(--text3);padding:30px 10px;font-size:.85rem">📭 Henüz değerlendirme yok.<br><br>Sol panelden gözlem girip ilk değerlendirmeyi yapın.</div>';
-    actDiv.style.display = 'none';
+    histDiv.innerHTML = '<div style="text-align:center;color:var(--text3);padding:24px 10px;font-size:.85rem">📭 Henüz kayıt yok.<br>Yukarıdan hızlı kayıt veya yapay zeka değerlendirmesi yapabilirsin.</div>';
     return;
   }
   
-  // Geçmişi yenidenetane sırala
+  // Sıralı göster (en yeni önce)
   const sorted = list.slice().sort((a,b)=>(b.tarih||'').localeCompare(a.tarih||''));
   histDiv.innerHTML = sorted.map(item=>maarifHistoryCard(item,id)).join('');
-  actDiv.style.display = 'flex';
 }
 
 // Geçmiş kartı HTML'i
 function maarifHistoryCard(item,studentId){
-  const date = new Date(item.tarih).toLocaleDateString('tr-TR',{day:'2-digit',month:'2-digit',year:'numeric'});
+  const date = new Date(item.tarih).toLocaleDateString('tr-TR',{day:'2-digit',month:'2-digit',year:'2-digit'});
   const time = new Date(item.tarih).toLocaleTimeString('tr-TR',{hour:'2-digit',minute:'2-digit'});
   const score = item.score || 0;
-  const scoreColor = score>=90?'#22c55e':score>=75?'#3b82f6':score>=60?'#f59e0b':'#ef4444';
+  const isOlumsuz = item.tip === 'olumsuz' || score < 0;
+  const isHatali = item.hatali === true;
+  
+  const scoreColor = isHatali ? '#94a3b8' : (score > 0 ? '#22c55e' : '#ef4444');
+  const sembol = score > 0 ? '+' : '';
   const m = item.maarif || {};
   
   // Etiketler
@@ -10006,22 +10185,50 @@ function maarifHistoryCard(item,studentId){
   }
   (m.beceriler||[]).forEach(v=>tags.push({txt:v,bg:'#475569'}));
   
-  return '<div style="background:var(--bg2);border:1px solid var(--border);border-radius:8px;padding:10px;margin-bottom:8px">'
+  const kaynakIcon = item.kaynak === 'ai' ? '🤖' : '⚡';
+  const kilitIcon = (item.silinemez && !isHatali) ? '🔒' : '';
+  const hataliText = isHatali ? '<span style="background:#fbbf24;color:#000;padding:2px 6px;border-radius:4px;font-size:.62rem;font-weight:700;margin-left:4px">⚠️ HATALI</span>' : '';
+  
+  return '<div style="background:var(--bg2);border:1px solid var(--border);border-radius:8px;padding:10px;margin-bottom:8px'+(isHatali?';opacity:.6':'')+'">'
     +'<div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px">'
-    +'<div style="flex:1">'
-    +'<div style="font-size:.7rem;color:var(--text3)">'+date+' • '+time+'</div>'
+    +'<div style="flex:1;min-width:0">'
+    +'<div style="font-size:.7rem;color:var(--text3)">'+kaynakIcon+' '+date+' • '+time+' '+kilitIcon+hataliText+'</div>'
     +'<div style="font-size:.78rem;color:var(--text);margin-top:4px;line-height:1.4">'+escapeHtml((item.observation||'').slice(0,140))+(item.observation&&item.observation.length>140?'...':'')+'</div>'
     +'</div>'
-    +'<div style="background:'+scoreColor+';color:#fff;font-weight:800;padding:4px 10px;border-radius:6px;font-size:.85rem;flex-shrink:0">'+score+'</div>'
+    +'<div style="background:'+scoreColor+';color:#fff;font-weight:800;padding:4px 10px;border-radius:6px;font-size:.85rem;flex-shrink:0">'+sembol+score+'</div>'
     +'</div>'
     +(tags.length?'<div style="display:flex;flex-wrap:wrap;gap:4px;margin-top:6px">'
       +tags.map(t=>'<span style="background:'+t.bg+';color:#fff;padding:2px 7px;border-radius:4px;font-size:.65rem;font-weight:600">'+t.txt+'</span>').join('')
       +'</div>':'')
-    +'<div style="display:flex;gap:6px;margin-top:8px">'
+    +'<div style="display:flex;gap:6px;margin-top:8px;flex-wrap:wrap">'
     +'<button class="btn btn-ghost btn-xs" onclick="maarifShowDetail(\''+studentId+'\',\''+item.id+'\')">👁️ Detay</button>'
-    +'<button class="btn btn-ghost btn-xs" onclick="maarifDeleteEvaluation(\''+studentId+'\',\''+item.id+'\')" style="color:var(--red)">🗑️</button>'
+    + (isOlumsuz && !isHatali 
+        ? '<button class="btn btn-ghost btn-xs" onclick="maarifMarkHatali(\''+studentId+'\',\''+item.id+'\')" style="color:#f59e0b">⚠️ Hatalı İşaretle</button>'
+        : (!item.silinemez ? '<button class="btn btn-ghost btn-xs" onclick="maarifDeleteEvaluation(\''+studentId+'\',\''+item.id+'\')" style="color:var(--red)">🗑️ Sil</button>' : '<span style="font-size:.68rem;color:var(--text3);align-self:center">🔒 Kalıcı kayıt — silinemez</span>')
+      )
     +'</div>'
     +'</div>';
+}
+
+// Olumsuz kayıdı "hatalı" işaretle (etki etmesin)
+function maarifMarkHatali(studentId, evalId){
+  if(!confirm('Bu olumsuz kayıt "HATALI" olarak işaretlenecek.\n\n• Kayıt görünür kalır (şeffaflık)\n• Toplam puana etkisi kaldırılır\n• Geri alınabilir\n\nDevam?')) return;
+  if(!db.maarifAi || !db.maarifAi[studentId]) return;
+  const item = db.maarifAi[studentId].find(e=>e.id===evalId);
+  if(!item) return;
+  
+  // Toplam puana eklediği etkiyi geri al
+  const sinif = item.sinif;
+  const student = (db.classes[sinif]||[]).find(s=>s.id===studentId);
+  if(student && typeof student.toplamPuan === 'number'){
+    student.toplamPuan = Math.max(0, student.toplamPuan - (item.score||0));
+  }
+  
+  item.hatali = true;
+  save();
+  maarifLoadHistory();
+  maarifRenderGlobalList();
+  klbToast('⚠️ Hatalı olarak işaretlendi','success');
 }
 
 function escapeHtml(s){
@@ -10090,8 +10297,30 @@ function maarifShowApprovalModal(analysis, ctx){
   const old = H('maarif-approval-modal'); if(old) old.remove();
   
   const m = analysis.maarif_alignment || {};
-  const score = analysis.recommended_score || 0;
-  const scoreColor = score>=90?'#22c55e':score>=75?'#3b82f6':score>=60?'#f59e0b':'#ef4444';
+  // YENİ: AI puan değişimi (-5 ile +5 arası)
+  // Geriye uyumluluk: eğer puan_degisim yoksa, recommended_score'dan tahmin et
+  let puanDegisim;
+  if(typeof analysis.puan_degisim === 'number'){
+    puanDegisim = analysis.puan_degisim;
+  } else if(typeof analysis.recommended_score === 'number'){
+    // Eski model: 0-100 puan veriyordu — bunu değişime çevir
+    const s = analysis.recommended_score;
+    if(s >= 90) puanDegisim = 3;
+    else if(s >= 75) puanDegisim = 2;
+    else if(s >= 60) puanDegisim = 1;
+    else if(s >= 40) puanDegisim = -1;
+    else if(s >= 20) puanDegisim = -2;
+    else puanDegisim = -3;
+    analysis.puan_degisim = puanDegisim;
+  } else {
+    puanDegisim = 0;
+  }
+  
+  const isOlumlu = puanDegisim >= 0;
+  const renkPuan = isOlumlu ? '#22c55e' : '#ef4444';
+  const sembolPuan = puanDegisim > 0 ? '+' : '';
+  const ikonPuan = isOlumlu ? '🟢' : '🔴';
+  const tipText = isOlumlu ? 'OLUMLU' : 'OLUMSUZ (Kalıcı)';
   
   function renderTags(arr,bg){
     if(!arr || !arr.length) return '<span style="color:var(--text3);font-style:italic;font-size:.78rem">— yok —</span>';
@@ -10113,26 +10342,29 @@ function maarifShowApprovalModal(analysis, ctx){
     +'</div>'
     +'<div style="padding:18px 20px">'
     
-    // Puan
-    +'<div style="background:var(--bg2);border-radius:10px;padding:14px;display:flex;align-items:center;gap:14px;margin-bottom:14px">'
-    +'<div style="font-size:.78rem;color:var(--text2);font-weight:700">⭐ Önerilen Puan:</div>'
-    +'<input type="number" id="mai-score-input" value="'+score+'" min="0" max="100" style="width:90px;padding:10px;font-size:1.5rem;font-weight:800;text-align:center;border:2px solid '+scoreColor+';background:var(--bg);color:'+scoreColor+';border-radius:8px">'
-    +'<span style="font-size:1rem;color:var(--text3)">/ 100</span>'
-    +'<span style="margin-left:auto;font-size:.7rem;color:var(--text3);text-align:right">İstersen<br>düzenleyebilirsin</span>'
+    // Puan değişimi (YENİ)
+    +'<div style="background:'+(isOlumlu?'rgba(34,197,94,.15)':'rgba(239,68,68,.15)')+';border:2px solid '+renkPuan+';border-radius:10px;padding:14px;display:flex;align-items:center;gap:14px;margin-bottom:14px">'
+    +'<div style="font-size:2rem">'+ikonPuan+'</div>'
+    +'<div style="flex:1">'
+    +'<div style="font-size:.7rem;color:var(--text2);font-weight:700;text-transform:uppercase">'+tipText+'</div>'
+    +'<div style="font-size:1.8rem;font-weight:900;color:'+renkPuan+';line-height:1">'+sembolPuan+puanDegisim+' puan</div>'
     +'</div>'
+    +'<input type="number" id="mai-score-input" value="'+puanDegisim+'" min="-5" max="5" '+(isOlumlu?'':'readonly title="Olumsuz puan değiştirilemez"')+' style="width:70px;padding:8px;font-size:1.2rem;font-weight:800;text-align:center;border:2px solid '+renkPuan+';background:var(--bg2);color:'+renkPuan+';border-radius:8px'+(isOlumlu?'':';opacity:.7;cursor:not-allowed')+'">'
+    +'</div>'
+    +(isOlumlu ? '<div style="font-size:.72rem;color:var(--text3);margin:-8px 0 14px;text-align:center">💡 Olumlu puanı düzenleyebilirsin</div>' : '<div style="font-size:.72rem;color:#dc2626;margin:-8px 0 14px;text-align:center">🔒 Olumsuz puan değiştirilemez. Öğrenci olumlu davranışlarla telafi edebilir.</div>')
     
     // Maarif eşleşmesi
-    +'<div style="margin-bottom:14px">'
+    +'<div style="margin-bottom:12px">'
     +'<div style="font-size:.78rem;font-weight:700;color:var(--purple);margin-bottom:6px">🏛️ Çatı Değerler</div>'
     +'<div>'+renderTags(m.cati_degerler,'#a855f7')+'</div>'
     +'</div>'
     
-    +'<div style="margin-bottom:14px">'
+    +'<div style="margin-bottom:12px">'
     +'<div style="font-size:.78rem;font-weight:700;color:#ec4899;margin-bottom:6px">💎 Alt Değerler</div>'
     +'<div>'+renderTags(m.alt_degerler,'#ec4899')+'</div>'
     +'</div>'
     
-    +'<div style="margin-bottom:14px">'
+    +'<div style="margin-bottom:12px">'
     +'<div style="font-size:.78rem;font-weight:700;color:#0891b2;margin-bottom:6px">🌱 Eğilimler</div>'
     +'<div style="font-size:.7rem;color:var(--text3);margin-bottom:3px">Benlik:</div>'
     +'<div style="margin-bottom:5px">'+renderTags(m.egilimler?.benlik,'#0891b2')+'</div>'
@@ -10142,7 +10374,7 @@ function maarifShowApprovalModal(analysis, ctx){
     +'<div>'+renderTags(m.egilimler?.entelektuel,'#7c3aed')+'</div>'
     +'</div>'
     
-    +'<div style="margin-bottom:14px">'
+    +'<div style="margin-bottom:12px">'
     +'<div style="font-size:.78rem;font-weight:700;color:#475569;margin-bottom:6px">🎯 Beceriler</div>'
     +'<div>'+renderTags(m.beceriler,'#475569')+'</div>'
     +'</div>'
@@ -10172,7 +10404,7 @@ function maarifShowApprovalModal(analysis, ctx){
     +'</div>'
     +'</div></div>';
   
-  // Geçici sakla — onaylandığında kullanılacak
+  // Geçici sakla
   modal._maarifPayload = { analysis, ctx };
   document.body.appendChild(modal);
 }
@@ -10188,6 +10420,11 @@ function maarifSaveEvaluation(){
   if(!db.maarifAi) db.maarifAi = {};
   if(!db.maarifAi[ctx.ogrenciId]) db.maarifAi[ctx.ogrenciId] = [];
   
+  // YENİ: Puan değişimini hesapla (-5 ile +5 arası, AI'den gelen)
+  // analysis.recommended_score artık 0-100 değil, doğrudan değişim (örn: +2, -3)
+  const puanDegisim = analysis.puan_degisim || score; // geriye uyumluluk
+  const isOlumsuz = puanDegisim < 0;
+  
   const evaluation = {
     id: 'mai_' + Date.now() + '_' + Math.floor(Math.random()*1000),
     tarih: new Date().toISOString(),
@@ -10195,7 +10432,10 @@ function maarifSaveEvaluation(){
     ogrenciAd: ctx.ogrenciAd,
     ogrenciNo: ctx.ogrenciNo,
     observation: ctx.observation,
-    score: Math.max(0, Math.min(100, score)),
+    score: puanDegisim,        // değişim miktarı (+/-)
+    tip: isOlumsuz ? 'olumsuz' : 'olumlu',
+    silinemez: isOlumsuz,       // olumsuz kayıtlar silinemez
+    kaynak: 'ai',
     maarif: {
       cati_degerler: analysis.maarif_alignment?.cati_degerler || [],
       alt_degerler: analysis.maarif_alignment?.alt_degerler || [],
@@ -10212,26 +10452,101 @@ function maarifSaveEvaluation(){
   };
   
   db.maarifAi[ctx.ogrenciId].push(evaluation);
-  save();
   
+  // ÖĞRENCİNİN TOPLAM PUANINI GÜNCELLE
+  const student = (db.classes[ctx.sinif]||[]).find(s=>s.id===ctx.ogrenciId);
+  if(student){
+    if(typeof student.toplamPuan !== 'number') student.toplamPuan = 100;
+    student.toplamPuan = Math.max(0, student.toplamPuan + puanDegisim);
+  }
+  
+  save();
   modal.remove();
   
   // Formu temizle
   H('mai-observation').value = '';
-  H('mai-charcount').textContent = '0 / 3000';
-  H('mai-charcount').style.color = 'var(--text3)';
+  if(H('mai-charcount')){
+    H('mai-charcount').textContent = '0 / 3000';
+    H('mai-charcount').style.color = 'var(--text3)';
+  }
   
-  // Geçmişi yenile
+  // Yenile
   maarifLoadHistory();
   maarifRenderGlobalList();
   
-  klbToast('✅ Maarif değerlendirmesi kaydedildi!','success');
+  const sembol = puanDegisim > 0 ? '+' : '';
+  klbToast('✅ Kaydedildi! Puan değişimi: ' + sembol + puanDegisim, 'success');
+}
+
+// ===== HIZLI KAYIT =====
+function maarifQuickRecord(label, puan, tip){
+  const id = maarifSelectedStudentId;
+  if(!id){ klbToast('⚠️ Önce öğrenci seç','error'); return; }
+  
+  const sinif = H('mai-sinif').value;
+  const student = (db.classes[sinif]||[]).find(s=>s.id===id);
+  if(!student){ klbToast('⚠️ Öğrenci bulunamadı','error'); return; }
+  
+  // Onay (sadece olumsuz için)
+  if(tip === 'neg'){
+    if(!confirm('⚠️ Olumsuz kayıt eklenecek!\n\n"' + label + '" → ' + puan + ' puan\n\nBu kayıt KALICI olur, silinemez. Öğrenci sadece olumlu davranışlarla puanını yükseltebilir.\n\nDevam?')) return;
+  }
+  
+  if(!db.maarifAi) db.maarifAi = {};
+  if(!db.maarifAi[id]) db.maarifAi[id] = [];
+  
+  const evaluation = {
+    id: 'mai_' + Date.now() + '_' + Math.floor(Math.random()*1000),
+    tarih: new Date().toISOString(),
+    sinif: sinif,
+    ogrenciAd: student.ad,
+    ogrenciNo: student.no,
+    observation: label,
+    score: puan,
+    tip: tip === 'neg' ? 'olumsuz' : 'olumlu',
+    silinemez: tip === 'neg',
+    kaynak: 'manuel',
+    maarif: {cati_degerler:[],alt_degerler:[],egilimler:{benlik:[],sosyal:[],entelektuel:[]},beceriler:[]},
+    pedagogical_evidence: '',
+    inspector_note: '',
+    feedback_for_student: ''
+  };
+  
+  db.maarifAi[id].push(evaluation);
+  
+  // Toplam puanı güncelle
+  if(typeof student.toplamPuan !== 'number') student.toplamPuan = 100;
+  student.toplamPuan = Math.max(0, student.toplamPuan + puan);
+  
+  save();
+  maarifLoadHistory();
+  maarifRenderGlobalList();
+  
+  const sembol = puan > 0 ? '+' : '';
+  klbToast('✅ ' + label + ' (' + sembol + puan + ')', 'success');
 }
 
 // ===== DEĞERLENDİRMEYİ SİL =====
 function maarifDeleteEvaluation(studentId, evalId){
-  if(!confirm('Bu değerlendirmeyi silmek istediğinize emin misiniz?')) return;
   if(!db.maarifAi || !db.maarifAi[studentId]) return;
+  const item = db.maarifAi[studentId].find(e=>e.id===evalId);
+  if(!item) return;
+  
+  // Olumsuz kayıt silinemez
+  if(item.silinemez){
+    alert('🔒 Bu kayıt KALICI'+'\n\nOlumsuz kayıtlar silinemez. Öğrenci olumlu davranışlarla puanını yükseltebilir.\n\nEğer yanlış kayıt olduğunu düşünüyorsan, "⚠️ Hatalı İşaretle" butonunu kullan.');
+    return;
+  }
+  
+  if(!confirm('Bu olumlu kayıt silinecek. Toplam puandan ' + (item.score||0) + ' puan düşecek.\n\nDevam?')) return;
+  
+  // Toplam puandan etki kaldır
+  const sinif = item.sinif;
+  const student = (db.classes[sinif]||[]).find(s=>s.id===studentId);
+  if(student && typeof student.toplamPuan === 'number'){
+    student.toplamPuan = Math.max(0, student.toplamPuan - (item.score||0));
+  }
+  
   db.maarifAi[studentId] = db.maarifAi[studentId].filter(e=>e.id !== evalId);
   if(!db.maarifAi[studentId].length) delete db.maarifAi[studentId];
   save();
@@ -12435,6 +12750,146 @@ function zkPdfUndoCrop(){
   if(!zkPdfCrops.length) return;
   zkPdfCrops.pop(); zkPdfUpdateInfo(); zkPdfRenderPage(); zkPdfRenderCropPreviews();
   klbToast('↩️ Geri alındı','success');
+}
+
+// ===== VERİ TEMİZLEME PANELİ =====
+function maarifShowDataCleanup(){
+  const old = document.getElementById('maarif-cleanup-modal');
+  if(old){ old.remove(); return; }
+  
+  // İstatistikler
+  let totalStudents = 0;
+  let totalClasses = Object.keys(db.classes||{}).length;
+  Object.keys(db.classes||{}).forEach(s=>{
+    if(Array.isArray(db.classes[s])) totalStudents += db.classes[s].length;
+  });
+  let totalEvals = 0;
+  Object.keys(db.maarifAi||{}).forEach(id=>{
+    if(Array.isArray(db.maarifAi[id])) totalEvals += db.maarifAi[id].length;
+  });
+  
+  const modal = document.createElement('div');
+  modal.id = 'maarif-cleanup-modal';
+  modal.style.cssText = 'position:fixed;inset:0;z-index:5000;background:rgba(0,0,0,.8);display:flex;align-items:center;justify-content:center;padding:14px;overflow-y:auto';
+  
+  modal.innerHTML = 
+    '<div style="background:var(--bg);border:2px solid #ef4444;border-radius:14px;max-width:520px;width:100%;max-height:92vh;overflow-y:auto">'
+    +'<div style="background:linear-gradient(135deg,#ef4444,#dc2626);padding:16px 20px;border-radius:12px 12px 0 0;display:flex;justify-content:space-between;align-items:center">'
+    +'<div style="color:#fff"><div style="font-size:1.1rem;font-weight:800">🗑️ Veri Temizleme</div>'
+    +'<div style="font-size:.78rem;opacity:.92;margin-top:2px">Eski verileri silebilirsin</div></div>'
+    +'<button onclick="document.getElementById(\'maarif-cleanup-modal\').remove()" style="background:rgba(255,255,255,.22);border:none;color:#fff;width:32px;height:32px;border-radius:50%;font-size:1rem;cursor:pointer">✕</button>'
+    +'</div>'
+    +'<div style="padding:18px 20px">'
+    
+    // Uyarı
+    +'<div style="background:#fef3c7;color:#92400e;padding:10px 14px;border-radius:8px;font-size:.82rem;margin-bottom:14px;border-left:4px solid #f59e0b">'
+    +'<b>⚠️ ÖNEMLİ:</b> Silme işlemi <b>geri alınamaz</b>! Önce <b>"💾 Drive\'a Yedekle"</b> ile yedek almanı tavsiye ederim.'
+    +'</div>'
+    
+    // İstatistikler
+    +'<div style="background:var(--bg2);border-radius:8px;padding:12px;margin-bottom:14px;font-size:.82rem">'
+    +'<div style="font-weight:700;color:var(--text2);margin-bottom:6px">📊 Mevcut Veri:</div>'
+    +'<div>🏫 Sınıf: <b>'+totalClasses+'</b></div>'
+    +'<div>👥 Öğrenci: <b>'+totalStudents+'</b></div>'
+    +'<div>📋 Maarif değerlendirmesi: <b>'+totalEvals+'</b></div>'
+    +'</div>'
+    
+    // Butonlar
+    +'<div style="display:flex;flex-direction:column;gap:10px">'
+    
+    +'<button onclick="maarifCleanup(\'students\')" style="background:#fef3c7;color:#92400e;border:1px solid #f59e0b;padding:14px;border-radius:8px;cursor:pointer;text-align:left;font-size:.85rem">'
+    +'<div style="font-weight:800;font-size:.9rem;margin-bottom:3px">👥 Tüm Öğrencileri Sil</div>'
+    +'<div style="font-size:.75rem;opacity:.85">Sınıf yapısı kalır, sadece öğrenciler silinir</div>'
+    +'</button>'
+    
+    +'<button onclick="maarifCleanup(\'evaluations\')" style="background:#fef3c7;color:#92400e;border:1px solid #f59e0b;padding:14px;border-radius:8px;cursor:pointer;text-align:left;font-size:.85rem">'
+    +'<div style="font-weight:800;font-size:.9rem;margin-bottom:3px">📊 Tüm Performans Kayıtlarını Sil</div>'
+    +'<div style="font-size:.75rem;opacity:.85">Maarif AI değerlendirmeleri ve hızlı kayıtlar silinir</div>'
+    +'</button>'
+    
+    +'<button onclick="maarifCleanup(\'classes\')" style="background:#fee2e2;color:#991b1b;border:1px solid #ef4444;padding:14px;border-radius:8px;cursor:pointer;text-align:left;font-size:.85rem">'
+    +'<div style="font-weight:800;font-size:.9rem;margin-bottom:3px">🏫 Tüm Sınıfları Sil</div>'
+    +'<div style="font-size:.75rem;opacity:.85">Sınıflar VE öğrenciler silinir</div>'
+    +'</button>'
+    
+    +'<button onclick="maarifCleanup(\'all\')" style="background:#fecaca;color:#7f1d1d;border:2px solid #dc2626;padding:14px;border-radius:8px;cursor:pointer;text-align:left;font-size:.85rem">'
+    +'<div style="font-weight:800;font-size:.9rem;margin-bottom:3px">💣 HER ŞEYİ SIFIRLA</div>'
+    +'<div style="font-size:.75rem;opacity:.85">Tüm veri silinir, sıfırdan başla</div>'
+    +'</button>'
+    
+    +'</div>'
+    +'</div></div>';
+  
+  document.body.appendChild(modal);
+}
+
+function maarifCleanup(tip){
+  let mesaj = '', count = 0;
+  
+  if(tip==='students'){
+    Object.keys(db.classes||{}).forEach(s=>{
+      if(Array.isArray(db.classes[s])) count += db.classes[s].length;
+    });
+    mesaj = 'TÜM ÖĞRENCİLER ('+count+' kişi) silinecek.\n\nSınıflar kalacak, sadece öğrenciler silinecek.\n\nBu işlem GERİ ALINAMAZ!\n\nDevam etmek istiyor musun?';
+  } else if(tip==='evaluations'){
+    Object.keys(db.maarifAi||{}).forEach(id=>{
+      if(Array.isArray(db.maarifAi[id])) count += db.maarifAi[id].length;
+    });
+    mesaj = 'TÜM PERFORMANS KAYITLARI ('+count+' değerlendirme) silinecek.\n\nÖğrencilerin toplam puanları 100\'e dönecek.\n\nBu işlem GERİ ALINAMAZ!\n\nDevam etmek istiyor musun?';
+  } else if(tip==='classes'){
+    count = Object.keys(db.classes||{}).length;
+    let stCount = 0;
+    Object.keys(db.classes||{}).forEach(s=>{
+      if(Array.isArray(db.classes[s])) stCount += db.classes[s].length;
+    });
+    mesaj = 'TÜM SINIFLAR ('+count+') VE ÖĞRENCİLER ('+stCount+' kişi) silinecek.\n\nBu işlem GERİ ALINAMAZ!\n\nDevam etmek istiyor musun?';
+  } else if(tip==='all'){
+    mesaj = '⚠️ HER ŞEY SİFİRLANACAK!\n\n• Tüm sınıflar\n• Tüm öğrenciler\n• Tüm performans kayıtları\n• Tüm sorular\n• Tüm sınav kayıtları\n• Salonlar\n\nUygulama temiz başlangıç haline dönecek.\n\nBu işlem GERİ ALINAMAZ!\n\nDevam etmek istiyor musun?';
+  }
+  
+  if(!confirm(mesaj)) return;
+  if(!confirm('SON ONAY: Gerçekten silmek istediğine emin misin?\n\nİşlem geri alınamaz!')) return;
+  
+  // Silme işlemleri
+  if(tip==='students'){
+    Object.keys(db.classes||{}).forEach(s=>{ db.classes[s] = []; });
+    db.maarifAi = {}; // öğrenci yoksa kayıtlar da işe yaramaz
+  } else if(tip==='evaluations'){
+    db.maarifAi = {};
+    // Öğrencilerin toplam puanlarını 100'e döndür
+    Object.keys(db.classes||{}).forEach(s=>{
+      if(Array.isArray(db.classes[s])){
+        db.classes[s].forEach(st=>{ st.toplamPuan = 100; });
+      }
+    });
+  } else if(tip==='classes'){
+    db.classes = {};
+    db.maarifAi = {};
+  } else if(tip==='all'){
+    db.classes = {};
+    db.maarifAi = {};
+    db.questions = [];
+    db.calismaQuestions = [];
+    db.examGroups = [];
+    db.savedExams = [];
+    db.savedCalisma = [];
+    db.salons = [];
+    db.dagitim = null;
+  }
+  
+  save();
+  
+  // UI'ı yenile
+  if(typeof renderClassTabs === 'function') renderClassTabs();
+  if(typeof renderStudentTable === 'function') renderStudentTable();
+  if(typeof renderStats === 'function') renderStats();
+  if(typeof maarifInitPage === 'function' && document.getElementById('mai-sinif')) maarifInitPage();
+  
+  const m = document.getElementById('maarif-cleanup-modal');
+  if(m) m.remove();
+  
+  klbToast('🗑️ Silindi! Sayfa yenilenecek...','success');
+  setTimeout(()=>{ location.reload(); }, 1500);
 }
 
 // ===== ÇOKLU MOD: Sınav ve Çalışma Kağıdı için PDF Kesici =====
